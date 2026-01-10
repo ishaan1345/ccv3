@@ -76,17 +76,23 @@ async def start_docker_stack(
         return {"success": False, "error": str(e)}
 
 
-async def wait_for_services(timeout: int = 60, services: list[str] | None = None) -> dict[str, Any]:
+async def wait_for_services(
+    timeout: int = 60,
+    services: list[str] | None = None,
+    compose_file: Path | None = None,
+) -> dict[str, Any]:
     """Wait for Docker services to become healthy.
 
     Args:
         timeout: Maximum seconds to wait
         services: List of service names to check (defaults to postgres, redis)
+        compose_file: Path to docker-compose.yml
 
     Returns:
         dict with service health status and all_healthy flag
     """
     services = services or ["postgres"]
+    compose_path = compose_file or DOCKER_COMPOSE_FILE
     result = {s: False for s in services}
     result["all_healthy"] = False
 
@@ -100,6 +106,8 @@ async def wait_for_services(timeout: int = 60, services: list[str] | None = None
                 process = await asyncio.create_subprocess_exec(
                     "docker",
                     "compose",
+                    "-f",
+                    str(compose_path),
                     "ps",
                     service,
                     "--format",
@@ -126,25 +134,32 @@ async def wait_for_services(timeout: int = 60, services: list[str] | None = None
     return result
 
 
-async def run_migrations(migrations_dir: Path | None = None) -> dict[str, Any]:
+async def run_migrations(
+    migrations_dir: Path | None = None,
+    compose_file: Path | None = None,
+) -> dict[str, Any]:
     """Run database migrations.
 
     Args:
         migrations_dir: Directory containing migration SQL files
+        compose_file: Path to docker-compose.yml
 
     Returns:
         dict with keys: success, error (if failed), migrations_run
     """
     migrations_path = migrations_dir or MIGRATIONS_DIR
+    compose_path = compose_file or DOCKER_COMPOSE_FILE
 
-    # First, try to run init-db.sql if it exists
-    init_sql = PROJECT_ROOT / "init-db.sql"
+    # First, try to run init-schema.sql if it exists
+    init_sql = PROJECT_ROOT / "init-schema.sql"
 
     try:
         if init_sql.exists():
             process = await asyncio.create_subprocess_exec(
                 "docker",
                 "compose",
+                "-f",
+                str(compose_path),
                 "exec",
                 "-T",
                 "postgres",
@@ -152,9 +167,9 @@ async def run_migrations(migrations_dir: Path | None = None) -> dict[str, Any]:
                 "-U",
                 "claude",
                 "-d",
-                "claude_continuity",
+                "continuous_claude",
                 "-f",
-                "/docker-entrypoint-initdb.d/init-db.sql",
+                "/docker-entrypoint-initdb.d/init-schema.sql",
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE,
             )
@@ -165,6 +180,8 @@ async def run_migrations(migrations_dir: Path | None = None) -> dict[str, Any]:
                 process = await asyncio.create_subprocess_exec(
                     "docker",
                     "compose",
+                    "-f",
+                    str(compose_path),
                     "exec",
                     "-T",
                     "postgres",
@@ -172,7 +189,7 @@ async def run_migrations(migrations_dir: Path | None = None) -> dict[str, Any]:
                     "-U",
                     "claude",
                     "-d",
-                    "claude_continuity",
+                    "continuous_claude",
                     stdin=asyncio.subprocess.PIPE,
                     stdout=asyncio.subprocess.PIPE,
                     stderr=asyncio.subprocess.PIPE,
@@ -189,6 +206,8 @@ async def run_migrations(migrations_dir: Path | None = None) -> dict[str, Any]:
                 process = await asyncio.create_subprocess_exec(
                     "docker",
                     "compose",
+                    "-f",
+                    str(compose_path),
                     "exec",
                     "-T",
                     "postgres",
@@ -196,7 +215,7 @@ async def run_migrations(migrations_dir: Path | None = None) -> dict[str, Any]:
                     "-U",
                     "claude",
                     "-d",
-                    "claude_continuity",
+                    "continuous_claude",
                     stdin=asyncio.subprocess.PIPE,
                     stdout=asyncio.subprocess.PIPE,
                     stderr=asyncio.subprocess.PIPE,
