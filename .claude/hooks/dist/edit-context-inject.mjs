@@ -275,11 +275,11 @@ function getTLDRImports(filePath) {
     return [];
   }
 }
-function getTLDRExtract(filePath) {
+function getTLDRExtract(filePath, sessionId) {
   try {
     const projectDir = process.env.CLAUDE_PROJECT_DIR || process.cwd();
     const response = queryDaemonSync(
-      { cmd: "extract", file: filePath },
+      { cmd: "extract", file: filePath, session: sessionId },
       projectDir
     );
     if (response.indexing || response.status === "unavailable" || response.status === "error") {
@@ -304,7 +304,7 @@ async function main() {
     console.log("{}");
     return;
   }
-  const extract = getTLDRExtract(filePath);
+  const extract = getTLDRExtract(filePath, input.session_id);
   const imports = getTLDRImports(filePath);
   const classCount = extract?.classes?.length || 0;
   const funcCount = extract?.functions?.length || 0;
