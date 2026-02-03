@@ -1,0 +1,33 @@
+{
+  "meeting": {
+    "contact_name": "Linda Chen",
+    "contact_title": "VP of Sales",
+    "company": "Acme Corp",
+    "time": "2026-01-27T09:00:00",
+    "location": "123 Main St, Suite 400"
+  },
+  "deal": {
+    "amount": 45000,
+    "stage": "Proposal",
+    "days_in_stage": 21,
+    "next_step": "Get CFO approval"
+  },
+  "history": {
+    "last_meeting": "2026-01-12",
+    "promises_made": [
+      "Send ROI calculator (SENT 2026-01-15, OPENED, no response)"
+    ],
+    "objections": [
+      "Concerned about Salesforce integration"
+    ],
+    "personal": [
+      "Daughter plays soccer - had finals last weekend"
+    ]
+  },
+  "intel": {
+    "competitors_mentioned": ["Siro"],
+    "decision_maker": "CFO Bob - budget focused",
+    "recent_news": "Acme stock up 12% this quarter"
+  },
+  "recommended_approach": "Lead with new Salesforce connector (shipped last week). Ask about daughter's finals. Push for CFO intro."
+}

@@ -1,0 +1,135 @@
+{
+  "matches": [
+    {
+      "who": "yasser-reda-88328b74",
+      "platform": "linkedin",
+      "what_they_said": "From Inside the Mind of a Sales Manager \u2014 Part 4 A Big Pipeline Without Alignment Is a Recipe for Failure",
+      "why_they_match": "MATCH \u2014 Profile title says 'Sales Manager' and post explicitly states 'From Inside the Mind of a Sales Manager' discussing pipeline management challenges. This is a sales manager writing from experience about pipeline reliability issues, which directly aligns with ICP's 'pipeline is garbage' problem.",
+      "url": "https://www.linkedin.com/posts/yasser-reda-88328b74_frominsidethemindofasalesmanager-salesleadership-activity-7420778886520623105-4h_E",
+      "source_query": "VP sales field team pipeline data"
+    },
+    {
+      "who": "nealhoward",
+      "platform": "linkedin",
+      "what_they_said": "Good leads go cold \u2022 Deals get delayed or quietly disappear \u2022 Forecasts become unreliable \u2022 Targets are missed month after month After 23+ years in sales, I've ...",
+      "why_they_match": "MATCH \u2014 23+ years in sales, discussing unreliable forecasts and deals disappearing from pipeline. Classic sales leader pain point around pipeline visibility. Username is person-name format, discussing practitioner problems not selling a solution.",
+      "url": "https://www.linkedin.com/posts/nealhoward_something-ive-noticed-over-the-years-in-activity-7420491755889807360-mKYQ",
+      "source_query": "VP sales outside team pipeline unreliable"
+    },
+    {
+      "who": "greggschaeppi",
+      "platform": "linkedin",
+      "what_they_said": "Most sales leaders are great at execution: \u2192 Coaching their team \u2192 Managing pipeline \u2192 Hitting their number \u2192 Handling escalations Then when it comes ...",
+      "why_they_match": "MATCH \u2014 Explicitly discusses sales leaders coaching teams and managing pipeline. Talking about sales leadership execution challenges. Person-name username, practitioner perspective on sales management.",
+      "url": "https://www.linkedin.com/posts/greggschaeppi_revops-maturity-is-not-about-your-toolsdashboards-activity-7421304349236322305-zFlQ",
+      "source_query": "VP sales outside team pipeline unreliable"
+    },
+    {
+      "who": "kylie-richmond-b9867219",
+      "platform": "linkedin",
+      "what_they_said": "As someone accountable for pipeline, this resonates. Events aren't just about attendance anymore \u2014 they're about influence, continuity, and pipeline impact.",
+      "why_they_match": "MATCH \u2014 Self-identifies as 'someone accountable for pipeline' \u2014 direct signal of sales leadership role. Discussing pipeline management challenges. Person username format.",
+      "url": "https://www.linkedin.com/posts/kylie-richmond-b9867219_as-someone-accountable-for-pipeline-this-activity-7420498893827907584-zJZy",
+      "source_query": "VP sales outside team pipeline unreliable"
+    },
+    {
+      "who": "mike-butcher-041644299",
+      "platform": "linkedin",
+      "what_they_said": "What I know now is that overperformers face having territories reworked and opportunities divided. Make the best of the good times while they last. -Projections ...",
+      "why_they_match": "MATCH \u2014 Discussing territory management and projections from personal sales experience. 'What I've learned in my time in sales' suggests practitioner. Territory management is field sales context.",
+      "url": "https://www.linkedin.com/posts/mike-butcher-041644299_what-ive-learned-in-my-time-in-sales-goal-activity-7420491653154783233-r9ib",
+      "source_query": "managing territory sales reps can't see activity"
+    },
+    {
+      "who": "ryan-banko",
+      "platform": "linkedin",
+      "what_they_said": "Most CROs don't struggle with revenue because of sales execution. They struggle because deals are entering the pipeline without enough context, trust, or ...",
+      "why_they_match": "MATCH \u2014 Discussing CRO-level challenges with pipeline quality and deal context. 'Deals entering pipeline without enough context' aligns with ICP pain of missing field data. Person-name format.",
+      "url": "https://www.linkedin.com/posts/ryan-banko_revenue-revenueconcentration-sales-activity-7420502386437287936-eu3J",
+      "source_query": "managing territory sales reps can't see activity"
+    },
+    {
+      "who": "reganbarker",
+      "platform": "linkedin",
+      "what_they_said": "Sales teams don't lose deals due to lack of effort; they lose them because of latency. This latency exists between signal and action, insight and execution, and ...",
+      "why_they_match": "MATCH \u2014 'Sales leaders won't admit' and discussing latency between insight and execution. This is visibility/data gap problem. Person-name username, practitioner discussing sales team challenges.",
+      "url": "https://www.linkedin.com/posts/reganbarker_heres-the-truth-most-sales-leaders-wont-activity-7421310940375248897-ux9l",
+      "source_query": "managing territory sales reps can't see activity"
+    },
+    {
+      "who": "bharat-hindurao-bagal\ud83c\uddee\ud83c\uddf3-016299a8",
+      "platform": "linkedin",
+      "what_they_said": "Very useful insight - Every Manager should be aware of these blind spots. Strong reminder that leadership is about timely correction, not results.",
+      "why_they_match": "MATCH \u2014 Commenting on pharma sales blind spots from manager perspective. Profile title mentions 'Pharma Sales Blind Spots' and they're engaging as someone who relates to manager blind spots. Pharma = field sales context (medical device/pharma reps visit hospitals).",
+      "url": "https://www.linkedin.com/posts/bharat-hindurao-bagal%F0%9F%87%AE%F0%9F%87%B3-016299a8_leadership-pharmasales-peopledevelopment-activity-7420882414853554177-Dt1d",
+      "source_query": "field sales director coaching blind no data"
+    },
+    {
+      "who": "prmodbafna",
+      "platform": "linkedin",
+      "what_they_said": "Can sales recognize this exposure instantly, without a CRM field or attribution debate? If results are mixed, do we already know what decision we'll make next?",
+      "why_they_match": "MATCH \u2014 Discussing sales blind spots and CRM visibility challenges. 'Can sales recognize this exposure instantly' speaks to lack of real-time visibility. Person-name format, practitioner perspective.",
+      "url": "https://www.linkedin.com/posts/prmodbafna_customerrelationships-customerretention-brandbuilding-activity-7420416882211573760-N4Wd",
+      "source_query": "field sales director coaching blind no data"
+    },
+    {
+      "who": "michellegoldner",
+      "platform": "linkedin",
+      "what_they_said": "Your best reps are closest to the customer. Consistently dismissing their feedback leads to disengagement. - Promote bad managers over...",
+      "why_they_match": "MATCH \u2014 Discussing sales management challenges with field reps ('closest to the customer'), manager promotion issues, rep engagement. Found via 'regional sales manager my reps pipeline mess' query. Username is a person name, discussing practitioner challenges in sales leadership.",
+      "url": "https://www.linkedin.com/posts/michellegoldner_your-best-sales-person-just-became-your-worst-activity-7420408535219326976--cqE",
+      "source_query": "regional sales manager my reps pipeline mess"
+    },
+    {
+      "who": "warrenkucker",
+      "platform": "linkedin",
+      "what_they_said": "Only 17% of reps are generating 81% of revenue right now. The performance gap between top performers and everyone else is 8.9x",
+      "why_they_match": "MATCH \u2014 Sales leader discussing rep performance visibility problems, massive performance gaps between reps, pipeline issues ('7x Pipeline Coverage Isn't...'). This is exactly the visibility problem August solves. Found via pipeline query.",
+      "url": "https://www.linkedin.com/posts/warrenkucker_i-keep-hearing-the-same-thing-from-sales-activity-7420529581125963776-MGV-",
+      "source_query": "regional sales manager my reps pipeline mess"
+    },
+    {
+      "who": "aruana-murzaliyeva",
+      "platform": "linkedin",
+      "what_they_said": "Build a sales enviornment that protects good hires from failing. Create accountability that exposes problems early, not late",
+      "why_they_match": "MATCH \u2014 Discussing sales accountability systems, protecting hires from failing, exposing problems early. Found via 'territory manager outside sales accountability problem' query. Talks about sales management challenges in first-person context.",
+      "url": "https://www.linkedin.com/posts/aruana-murzaliyeva_most-hiring-managers-want-top-sales-performance-activity-7420557515647594499-RqZ9",
+      "source_query": "territory manager outside sales accountability problem"
+    },
+    {
+      "who": "maria-edelson-8a36984",
+      "platform": "linkedin",
+      "what_they_said": "Every sales manager has seen this: Customer says 'yes.' Rep updates forecast to 90%. Then... crickets.",
+      "why_they_match": "MATCH \u2014 Sales manager discussing pipeline reliability and rep forecast accuracy issues. Talks about the gap between what reps say/document vs. reality. Fits ICP's concern about 'pipeline is garbage' and lack of visibility into what's actually happening with customers.",
+      "url": "https://www.linkedin.com/posts/maria-edelson-8a36984_that-yes-you-celebrated-yesterday-it-was-activity-7422262222254571521-f-qp",
+      "source_query": "sales manager reps won't document customer meetings"
+    },
+    {
+      "who": "spark3sixty",
+      "platform": "linkedin",
+      "what_they_said": "Because reps hate data entry. So they skip it, rush it, or lie about activity to hit metrics. Your fancy CRM becomes a graveyard of bad information.",
+      "why_they_match": "MATCH \u2014 Directly describes ICP's exact problem: 'CRM is a graveyard,' reps hate data entry, bad CRM data. Matches key phrases 'our CRM is a graveyard' and 'reps log the minimum.' Speaking from practitioner perspective about rep behavior and CRM data quality.",
+      "url": "https://www.linkedin.com/posts/spark3sixty_conversations-in-your-crm-context-everywhere-activity-7420465542014197760-m-M7",
+      "source_query": "outside sales CRM empty reps hate logging"
+    },
+    {
+      "who": "peter-latocha-4275aa57",
+      "platform": "linkedin",
+      "what_they_said": "CRM's failed these organizations for two reasons. 1) outside reps don't use them and 2) because those systems were never designed to capture the behaviors",
+      "why_they_match": "MATCH \u2014 Directly discusses the core ICP problem: outside/field reps don't use CRMs. The phrase 'outside reps' is exact ICP language. Person appears to be discussing a real problem they observe in their world, not selling a solution.",
+      "url": "https://www.linkedin.com/posts/peter-latocha-4275aa57_most-business-owners-dont-realize-how-much-activity-7420481624150208512-cxL6",
+      "source_query": "outside sales CRM empty reps hate logging"
+    },
+    {
+      "who": "laurapenelopekeith",
+      "platform": "linkedin",
+      "what_they_said": "You could see where top performers nailed it, where habits crept back in and coach in real",
+      "why_they_match": "MATCH \u2014 Discusses coaching sales reps and visibility into what they're doing ('see where top performers nailed it'). Speaks as a practitioner managing a team, wants to see rep behavior to coach effectively. Fits the 'flying blind on field activity' problem.",
+      "url": "https://www.linkedin.com/posts/laurapenelopekeith_are-sales-playbooks-dead-ive-always-hated-activity-7420425052547899392-Eb_o",
+      "source_query": "regional sales manager blind to rep activities"
+    }
+  ],
+  "cost": 1.5958110000000003,
+  "elapsed": 309.2199137210846,
+  "event_count": 286
+}

@@ -1,0 +1,4 @@
+livekit-agents[silero,deepgram,cartesia,anthropic]~=1.0
+livekit-api~=1.0
+fastapi
+uvicorn

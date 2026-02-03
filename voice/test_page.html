@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Voice Interview Test</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: system-ui, sans-serif; background: #0a0a0a; color: #e5e5e5; min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 2rem; }
+        h1 { font-size: 1.5rem; margin-bottom: 1rem; color: #fff; }
+        .status { font-size: 0.9rem; color: #888; margin-bottom: 2rem; }
+        .controls { display: flex; gap: 1rem; margin-bottom: 2rem; }
+        button { padding: 0.75rem 1.5rem; border-radius: 8px; border: none; font-size: 1rem; cursor: pointer; transition: all 0.2s; }
+        button:disabled { opacity: 0.4; cursor: not-allowed; }
+        #connectBtn { background: #3b82f6; color: white; }
+        #connectBtn:hover:not(:disabled) { background: #2563eb; }
+        #startBtn { background: #10b981; color: white; }
+        #startBtn:hover:not(:disabled) { background: #059669; }
+        .visualizer { width: 300px; height: 80px; background: #1a1a1a; border-radius: 8px; margin-bottom: 2rem; }
+        canvas { width: 100%; height: 100%; border-radius: 8px; }
+        .transcript { width: 100%; max-width: 600px; background: #1a1a1a; border-radius: 8px; padding: 1.5rem; max-height: 400px; overflow-y: auto; }
+        .transcript h2 { font-size: 1rem; color: #888; margin-bottom: 1rem; }
+        .entry { margin-bottom: 0.75rem; padding: 0.5rem; border-radius: 4px; }
+        .entry.agent { background: #1e293b; }
+        .entry.user { background: #1a2e1a; }
+        .entry .label { font-size: 0.75rem; color: #888; margin-bottom: 0.25rem; }
+        .entry .text { font-size: 0.9rem; }
+    </style>
+</head>
+<body>
+    <h1>Voice Interview Test</h1>
+    <div class="status" id="status">Not connected</div>
+    <div class="controls">
+        <button id="connectBtn" onclick="connect()">Connect</button>
+        <button id="startBtn" onclick="startInterview()" disabled>Start Interview</button>
+    </div>
+    <div class="visualizer"><canvas id="visualizer"></canvas></div>
+    <div class="transcript">
+        <h2>Transcript</h2>
+        <div id="entries"></div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/livekit-client/dist/livekit-client.umd.js"></script>
+    <script>
+        const SERVER = window.location.origin;
+        let room = null;
+        let roomName = null;
+
+        function setStatus(msg) {
+            document.getElementById('status').textContent = msg;
+        }
+
+        function addEntry(role, text) {
+            const entries = document.getElementById('entries');
+            const div = document.createElement('div');
+            div.className = `entry ${role}`;
+            div.innerHTML = `<div class="label">${role === 'agent' ? 'Agent' : 'You'}</div><div class="text">${text}</div>`;
+            entries.appendChild(div);
+            entries.scrollTop = entries.scrollHeight;
+        }
+
+        async function connect() {
+            try {
+                setStatus('Getting token...');
+                const res = await fetch(`${SERVER}/voice/token`, { method: 'POST' });
+                const data = await res.json();
+                roomName = data.room_name;
+
+                setStatus('Connecting to LiveKit...');
+                room = new LivekitClient.Room();
+
+                room.on(LivekitClient.RoomEvent.TrackSubscribed, (track, pub, participant) => {
+                    if (track.kind === 'audio') {
+                        const el = track.attach();
+                        document.body.appendChild(el);
+                    }
+                });
+
+                room.on(LivekitClient.RoomEvent.DataReceived, (payload, participant) => {
+                    try {
+                        const msg = JSON.parse(new TextDecoder().decode(payload));
+                        if (msg.type === 'transcript') {
+                            addEntry(msg.role, msg.text);
+                        }
+                    } catch (e) {}
+                });
+
+                room.on(LivekitClient.RoomEvent.Disconnected, () => {
+                    setStatus('Disconnected');
+                    document.getElementById('connectBtn').disabled = false;
+                    document.getElementById('startBtn').disabled = true;
+                });
+
+                await room.connect(data.livekit_url, data.token);
+                await room.localParticipant.setMicrophoneEnabled(true);
+
+                setStatus(`Connected to room: ${roomName}`);
+                document.getElementById('connectBtn').disabled = true;
+                document.getElementById('startBtn').disabled = false;
+
+                setupVisualizer();
+            } catch (err) {
+                setStatus(`Error: ${err.message}`);
+                console.error(err);
+            }
+        }
+
+        async function startInterview() {
+            try {
+                document.getElementById('startBtn').disabled = true;
+                setStatus('Starting interview...');
+                await fetch(`${SERVER}/voice/start-interview?room_name=${roomName}`, { method: 'POST' });
+                setStatus('Interview in progress — speak when prompted');
+            } catch (err) {
+                setStatus(`Error: ${err.message}`);
+            }
+        }
+
+        function setupVisualizer() {
+            const canvas = document.getElementById('visualizer');
+            const ctx = canvas.getContext('2d');
+            canvas.width = canvas.offsetWidth * 2;
+            canvas.height = canvas.offsetHeight * 2;
+
+            if (!room?.localParticipant) return;
+
+            const audioTrack = room.localParticipant.audioTrackPublications.values().next().value;
+            if (!audioTrack?.track) return;
+
+            const mediaStream = new MediaStream([audioTrack.track.mediaStreamTrack]);
+            const audioCtx = new AudioContext();
+            const source = audioCtx.createMediaStreamSource(mediaStream);
+            const analyser = audioCtx.createAnalyser();
+            analyser.fftSize = 256;
+            source.connect(analyser);
+
+            const bufferLength = analyser.frequencyBinCount;
+            const dataArray = new Uint8Array(bufferLength);
+
+            function draw() {
+                requestAnimationFrame(draw);
+                analyser.getByteFrequencyData(dataArray);
+                ctx.fillStyle = '#1a1a1a';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                const barWidth = canvas.width / bufferLength;
+                for (let i = 0; i < bufferLength; i++) {
+                    const barHeight = (dataArray[i] / 255) * canvas.height;
+                    ctx.fillStyle = `hsl(${210 + i * 0.5}, 80%, ${50 + dataArray[i] / 5}%)`;
+                    ctx.fillRect(i * barWidth, canvas.height - barHeight, barWidth - 1, barHeight);
+                }
+            }
+            draw();
+        }
+    </script>
+</body>
+</html>
