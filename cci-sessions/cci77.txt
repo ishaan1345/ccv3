@@ -1,0 +1,1963 @@
+
+ ▐▛███▜▌   Claude Code v2.1.22
+▝▜█████▛▘  Opus 4.5 · Claude Max
+  ▘▘ ▝▝    ~/Continuous-Claude-v3/opc
+
+❯ /clear 
+  ⎿  (no content)
+
+❯  thoughts/shared/handoffs/general/2026-01-28_18-58_precision-test-and-com 
+  munitywatch-gap-analysis.yaml   Agent Engineering Analysis of the         
+  Distributo Agent                                                          
+                                                                            
+  What the agent actually is                                                
+                                                                            
+  A single Sonnet instance in a tool-use loop with 6 search tools, 1        
+  observation tool, 1 ask_founder tool, a system prompt, an injected eval   
+  prompt after each search batch, and a feedback loop. Up to 25 turns.      
+  No planner. No memory-driven routing. No state machine. Just: prompt      
+  → tool calls → eval → feedback → repeat.                                  
+                                                                            
+  The fundamental design problems                                           
+                                                                            
+  1. The agent has no plan — it explores randomly.                          
+                                                                            
+  There's no search strategy phase. The agent gets a system prompt saying   
+  "comprehend, observe, search, evaluate" but there's no explicit           
+  planning step where it writes down: "Here are my 20 queries ranked by     
+  expected yield. Here's my platform allocation. Here's my early-exit       
+  criteria." Every turn is improvised. That's why YTSDB R2 can hit 10       
+  matches and August R2 can hit 2 — same prompt, same architecture,         
+  completely different behavior. The variance isn't from the eval or the    
+  prompt — it's from the agent making up its strategy on the fly            
+  every time.                                                               
+                                                                            
+  An agent engineer would say: you need a plan step. Turn 1 should          
+  produce a written search plan (queries + platforms + allocation), and the 
+  remaining turns should execute it. The plan can be revised based on       
+  feedback, but there should BE a plan. Right now there's a bag of          
+  heuristics in a prompt and the model rolls dice on which ones to          
+  follow.                                                                   
+                                                                            
+  2. The observation/comprehension phase is unbounded despite the prompt    
+  saying otherwise.                                                         
+                                                                            
+  The code has a hard cap (self._observe_count > 1 returns an error on      
+  the 2nd observation call, line 1223). But the agent can call              
+  observe_community with multiple subreddits in the same turn via           
+  parallel tool calls — and it does (August R1 calls                        
+  observe_community(sales) AND observe_community(outsideSales) in turn      
+  1). The cap counts calls, not subreddits. And even with the cap, the      
+  agent burns turn 1 on observation, turn 2 on "let me look at more         
+  specific communities" (but now uses search_discussions or search_reddit   
+  as pseudo-observation), and doesn't actually execute real search          
+  queries until turn 3-4.                                                   
+                                                                            
+  An agent engineer would say: observation should be code-level, not        
+  agent-level. If you have proven queries from memory, skip observation     
+  entirely — the code should do this, not rely on the model obeying a       
+  <directive>. If you don't have proven queries, prefetch one               
+  community's posts before the loop starts and inject them as context.      
+  Don't give the model a tool it'll misuse.                                 
+                                                                            
+  3. The eval is synchronous and blocking — the agent can't search and      
+  evaluate in parallel.                                                     
+                                                                            
+  Every search batch triggers an inline eval. The agent searches, gets      
+  candidates, evaluates them, receives feedback, then decides what to       
+  search next. This is a sequential pipeline. The agent spends half its     
+  turns thinking about what it already found instead of searching for       
+  more.                                                                     
+                                                                            
+  An agent engineer would say: decouple search from eval. Have the agent    
+  generate all its search queries upfront (or in batches), execute          
+  them, and evaluate at the end. Or run search and eval as parallel         
+  streams. The current design means the agent's search strategy is          
+  corrupted by its evaluation — it sees "0 matches" and pivots its          
+  queries when the real problem might be that the first batch just happened 
+  to find vendors. A 2-phase "blast then filter" approach would have        
+  less variance than the current "search a little, evaluate, pivot,         
+  search a little more" loop.                                               
+                                                                            
+  4. The feedback loop is too noisy — it gives tactical advice the model    
+  can't use.                                                                
+                                                                            
+  Look at _build_feedback (lines 712-829). It says things like "PROBLEM:    
+  5 were VENDORS. FIX: Add 'looking for' or 'need help with' to             
+  queries." This is backseat driving. You're telling a Sonnet instance      
+  how to construct search queries, which is exactly what it's good at.      
+  The feedback should be: "5/18 were vendors. 0 matches this batch." Let    
+  the model figure out why. The prescriptive feedback actually              
+  reduces the model's ability to reason because it now has to reconcile     
+  its own strategy with your suggested fixes.                               
+                                                                            
+  An agent engineer would say: feedback should be data, not advice. Show    
+  the numbers. Show which queries produced which outcomes. Don't tell       
+  the model what to do — it's Sonnet, it can figure it out. The current     
+  feedback is what you'd write for GPT-3.5, not for a model that can        
+  reason.                                                                   
+                                                                            
+  5. The memory system provides good data that gets ignored because it's    
+  injected as text.                                                         
+                                                                            
+  Proven queries from previous runs are injected as <directive>Use these    
+  as your FIRST search calls</directive>. The model ignores it              
+  because it's one XML tag in a wall of instructions. The code already      
+  has the ability to inject prefilled search results (lines 1124-1152       
+  memory_search_results), but the proven queries themselves aren't being    
+  pre-executed — they're just handed to the model as suggestions.           
+                                                                            
+  An agent engineer would say: if you know what to search, search it        
+  yourself. Don't ask the model permission to use its own memory. Execute   
+  the top 5 proven queries programmatically in turn 0, inject the           
+  results as pre-evaluated candidates, and let the model start from a       
+  position of knowledge instead of starting cold every time. This alone     
+  would probably fix 50% of the variance — the good runs are the ones       
+  where the model happens to search the right thing early.                  
+                                                                            
+  6. The ground truth examples are domain-specific and static.              
+                                                                            
+  All examples in the system prompt are Scaylor/data-engineering specific   
+  (ETL, Snowflake, Databricks). When the agent runs for August              
+  (field sales CRM) or YTSDB (YouTube sponsorship database), it has zero    
+  domain-specific examples of what a match or rejection looks like.         
+  It has to figure it out from the abstract rules alone. This is like       
+  training a classifier with examples from one domain and testing on        
+  another.                                                                  
+                                                                            
+  An agent engineer would say: ground truth should be dynamic. Pull         
+  examples from the memory system — past matches and rejections for THIS    
+  product — and inject them into the eval prompt. If August has had 5       
+  matches and 20 rejections in previous runs, show the model what an        
+  August match looks like vs an August rejection. The memory system         
+  already stores this data. Use it.                                         
+                                                                            
+  7. There's no early-exit or yield-curve detection.                        
+                                                                            
+  The agent runs until it hits 25 turns or the target match count. It has   
+  no concept of "I've been searching for 4 turns with 0 new matches         
+  — my queries are exhausted." The traces show runs going 9 turns with      
+  0-2 matches in the last 4 turns. Those last 4 turns cost $0.80+ and       
+  found nothing. The agent should detect diminishing returns and either     
+  radically change strategy or stop.                                        
+                                                                            
+  An agent engineer would say: add a yield curve. Track matches-per-turn    
+  as a rolling average. If 3 consecutive turns produce 0 new matches,       
+  force a strategy reset (new platforms, completely different query         
+  patterns) or terminate. Don't burn $1 on repetitive searches.             
+                                                                            
+  ---                                                                       
+  The real root cause                                                       
+                                                                            
+  The agent is a prompt-driven search loop with no architecture. It's the   
+  equivalent of giving someone a search engine and saying "find me          
+  10 customers" with a page of instructions. Sometimes they get lucky,      
+  sometimes they don't. The $2/run × variable results is exactly what       
+  you'd expect from an unstructured exploration task.                       
+                                                                            
+  The fix isn't more prompt tuning. The fix is giving the agent             
+  structure: a plan, deterministic memory utilization, decoupled            
+  search/eval,                                                              
+  dynamic examples, and yield-curve-based stopping. The prompt is a lever   
+  you've already pulled as far as it goes — the traces show the             
+  prompt says the right things and the model ignores them. That's the       
+  signal that you've hit the ceiling of what prompting alone can do for     
+  this architecture.                                                        
+                                                                            
+  ✻ Churned for 2m 53s                                                      
+                                                                            
+  ❯ hey so... go imagine youre the agent. close your eyes. become           
+  distributo. make the journey of distributo. like go through everyhting.   
+  you have to understnad the context and everyhting. i need you to          
+  actually really figure it out. if you close your eyes adn imagine         
+  yourself as the agent(whch shouldnt be too hard considering you are an    
+  agent) what happens? yorue given context in the form of a                 
+  prompt and web searches. you are blind to everything but context. so      
+  how do you solve the problem distributo solves. another thing             
+  is                                                                        
+  that why dont we normalize and abstract the 50 tools. we should have a    
+  platform pciker. we need subagents(the subagents need good                
+  prompts and tools as well).  what am i saying here. stay with the         
+  knowedge of the agent engineer                                            
+  ⎿  UserPromptSubmit hook succeeded:                                       
+  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━                                   
+  🎯 SKILL ACTIVATION CHECK                                                 
+  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━                                   
+                                                                            
+  📚 RECOMMENDED SKILLS:                                                    
+  → github-search                                                           
+  → morph-search                                                            
+  → perplexity-search                                                       
+  → workflow-router                                                         
+  → parallel-agent-contracts                                                
+                                                                            
+  🤖 RECOMMENDED AGENTS (token-efficient):                                  
+  → oracle                                                                  
+  → debug-agent                                                             
+                                                                            
+  ACTION: Use Skill tool BEFORE responding                                  
+  ACTION: Use Task tool with agent for exploration                          
+  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━                                   
+                                                                            
+                                                                            
+  Context at 79%. Consider handoff when you reach a stopping point.         
+                                                                            
+  ● Let me think about this properly.                                       
+                                                                            
+  ---                                                                       
+  Being Distributo                                                          
+                                                                            
+  I'm Sonnet. I wake up. I have a system prompt telling me to find people   
+  experiencing a problem. I have an offer: "Field sales intelligence        
+  - CRM for outside sales reps with route planning, offline access, and     
+  territory management."                                                    
+                                                                            
+  I have 6+ search tools. I have observe_community. I have ask_founder. I   
+  have memory telling me some queries worked before.                        
+                                                                            
+  What do I actually experience?                                            
+                                                                            
+  Turn 1: I read my system prompt. It's ~240 lines. It tells me to          
+  comprehend, observe ONE community, generate queries, use proven queries   
+  first, evaluate as JSON, reject vendors/builders/content creators,        
+  ignore surface context, focus on intent, use 3+ platforms, generate       
+  15-20 queries, apply the DM test... It's a wall. I process it all but I   
+  have no priority structure. Everything is equally important, which        
+  means nothing is.                                                         
+                                                                            
+  I see <proven_queries> with queries that worked before. My prompt says    
+  "use these FIRST." But I also see <comprehension_instructions>            
+  saying "observe ONE community." And <rules> saying "COMPREHEND in turn    
+  1." These are competing directives. Do I use proven queries first,        
+  or do I comprehend first? The prompt says both. So I do what feels        
+  natural — I comprehend first, because it's positioned earlier in my       
+  context and it's what the workflow section emphasizes.                    
+                                                                            
+  I call observe_community("sales"). Maybe I also call                      
+  observe_community("outsideSales") in the same turn because I'm being      
+  thorough. I see                                                           
+  15 posts from r/sales. They're about quota pressure, manager              
+  complaints, career advice. None of this is what I'm looking for but I     
+  don't                                                                     
+  know that yet because I don't know what I'm looking for. I know the       
+  offer says "field sales reps" but I don't have a concrete picture of      
+  who that person IS until I see some examples.                             
+                                                                            
+  Turn 2: I might observe another community. Or I might start searching.    
+  It depends on how I feel. There's no forcing function. My prompt          
+  says "Turn 2: SEARCH" but that's a suggestion embedded in 240 lines of    
+  other suggestions.                                                        
+                                                                            
+  Turn 3-4: I finally search. I generate queries from my imagination.       
+  "field sales CRM recommendations." "best route planning software."        
+  These are topic queries, not seeker queries. I find 18 candidates. I      
+  evaluate them. 18/18 rejected. They're all CRM consultants, LinkedIn      
+  thought leaders, and Salesforce admins. I've now spent 4 turns and        
+  $0.80 and found nothing.                                                  
+                                                                            
+  Here's what went wrong from my perspective as the agent: I was given a    
+  comprehension task and a search task and an evaluation task and           
+  told to do them all in one conversation. But I wasn't given a strategy.   
+  I wasn't told "here are 5 queries that found matches last time,           
+  here are 3 subreddits where matches live, here is what a match looks      
+  like for THIS product." I was told abstract rules ("seekers ask,          
+  bloggers tell") and expected to derive the strategy myself every single   
+  time.                                                                     
+                                                                            
+  The 50-tool problem is real and you're right about it. I see              
+  search_reddit, search_hackernews, search_discussions, search_platform,    
+  search_youtube_comments, observe_community. When I want to search         
+  Twitter, I call search_platform(platform="twitter", query="..."). When I  
+  want to search LinkedIn, same tool different arg. When I want Reddit,     
+  different tool entirely. The tool surface area is flat — I have to        
+  know which tool + which argument combination maps to which audience.      
+  That's a routing decision I make implicitly every turn, and I make it     
+  badly because I have no data about which platforms yield for THIS         
+  product.                                                                  
+                                                                            
+  ---                                                                       
+  What You're Actually Saying                                               
+                                                                            
+  You're saying the agent needs architecture, not just prompts and tools.   
+                                                                            
+  Platform picker: Don't give me 50 platforms and say "use 3+." Give me a   
+  subagent or a code-level router that says: "For field sales CRM,          
+  the platforms that yielded matches historically are: Reddit (r/sales,     
+  r/sweatystartup, r/smallbusiness), Twitter, LinkedIn. Here's your         
+  allocation: 40% Reddit, 30% Twitter, 20% LinkedIn, 10% other." I          
+  shouldn't be choosing platforms — I should be executing on platforms that 
+  are chosen for me based on data.                                          
+                                                                            
+  Subagents: The single Sonnet loop is doing 4 jobs:                        
+  1. Comprehension — understanding the product and audience                 
+  2. Strategy — deciding what to search and where                           
+  3. Search execution — generating queries and calling tools                
+  4. Evaluation — deciding if candidates match                              
+                                                                            
+  These should be separate agents with separate prompts and separate        
+  tools. Not because "more agents = better" but because each job has a      
+  different failure mode and a different optimization surface.              
+                                                                            
+  - The comprehension agent needs the offer + landing page + founder Q&A.   
+  Its output is a structured ICP profile. It runs ONCE and its              
+  output is cached. It doesn't need search tools.                           
+  - The strategy agent (or this could be code, not an agent) needs the      
+  ICP profile + memory of what worked + platform yield data. Its output     
+  is a search plan: ranked queries × platforms. It doesn't need to          
+  evaluate candidates.                                                      
+  - The search executor is mechanical — take query + platform, call tool,   
+  return raw results. This can be Haiku. It doesn't need a big              
+  prompt.                                                                   
+  - The evaluator needs the ICP profile + candidates + ground truth         
+  examples from THIS product's history. It classifies match/reject. It      
+  doesn't need search tools.                                                
+                                                                            
+  Right now all 4 jobs are crammed into one Sonnet loop with one giant      
+  prompt. When the model fails at strategy (wrong platforms, wrong          
+  queries), it also fails at everything downstream. When it wastes turns    
+  comprehending, it has fewer turns to search. The jobs are coupled         
+  when they should be independent.                                          
+                                                                            
+  But here's the key insight you're pointing at: the subagents need GOOD    
+  prompts and tools. Not just "split it up." Each subagent needs:           
+                                                                            
+  - A focused prompt that describes ONE job, not four                       
+  - The right tools for that job (evaluator doesn't get search tools,       
+  searcher doesn't get observe_community)                                   
+  - The right context (evaluator gets ICP profile + domain-specific         
+  examples, not 240 lines of generic instructions)                          
+  - Structured inputs and outputs (ICP profile is a schema, search plan     
+  is a schema, evaluation is a schema — not free-text that gets parsed      
+  with regex)                                                               
+                                                                            
+  The platform picker specifically: normalize the 50 site:X mappings into   
+  a single search(query, platform) interface. Then the strategy             
+  layer picks platforms based on data (memory says "Twitter yielded 3       
+  matches for YTSDB, Reddit yielded 7"), not based on the model's vibes.    
+                                                                            
+  ---                                                                       
+  The Architecture That Falls Out                                           
+                                                                            
+  Memory (what worked before)                                               
+  ↓                                                                         
+  Comprehension (once, cached: ICP profile)                                 
+  ↓                                                                         
+  Strategy (plan: queries × platforms, informed by memory + ICP)            
+  ↓                                                                         
+  Search Executor (mechanical: execute plan, return raw candidates)         
+  ↓                                                                         
+  Evaluator (classify: match/reject using ICP + domain examples)            
+  ↓                                                                         
+  Feedback → Strategy (revise plan based on yield)                          
+                                                                            
+  Each box is either a subagent with a focused prompt or deterministic      
+  code. The loop is between Strategy → Search → Evaluate → Feedback,        
+  not between "do everything → do everything again." The comprehension is   
+  done ONCE. The strategy is explicit and revisable. The search is          
+  mechanical. The evaluation has domain-specific examples.                  
+                                                                            
+  This is what you had before with the 3-call architecture (Opus            
+  comprehension → Sonnet search → Opus eval) except the old version had a   
+  serialization boundary that killed context. The fix isn't "put it all     
+  back in one loop" — it's "keep the separation of concerns but share       
+  context properly." Subagents with a shared context object (ICP profile    
+  + match history + platform yield data), not isolated API calls that       
+  serialize to text.                                                        
+                                                                            
+  The $2/run variability goes away when the strategy is deterministic. If   
+  memory says "these 8 queries found matches" and the code executes         
+  those 8 queries first, every run starts from the same position. The       
+  variance today comes from the model improvising its strategy —            
+  sometimes it improvises well (YTSDB R2: 10 matches), sometimes badly      
+  (August R2: 2 matches). Make the strategy data-driven instead of          
+  model-driven and the floor comes up even if the ceiling stays the same.   
+  agent with subagents.                                                     
+
+● Session cleared. Ready for your next task.
+
+❯ resume handoff bro 
+
+● Skill(resume_handoff)
+  ⎿  Successfully loaded skill
+
+● Let me find available handoffs.
+
+● Searched for 3 patterns (ctrl+o to expand)
+
+● The most recent handoff is from today. Let me read it.
+
+● Read 1 file (ctrl+o to expand)
+  ⎿  Loaded ../../Distributo/CLAUDE.md
+
+● Good, I've read the full handoff. Now let me read the key files it references.
+
+● Read 2 files (ctrl+o to expand)
+
+❯ push everyhting including your thought processes from today. 
+
+● Got it — the user wants to resume from the most recent handoff AND push
+  today's thought processes. Let me also check what the /clear context included
+  — the agent engineering analysis and the architecture discussion.
+
+  Here's what I've absorbed from the handoff:
+
+  Current State (2026-01-28 18:58):
+  - Precision test with ask_founder mock: August jumped to 9.0 avg (+157%), but
+  Scaylor dropped to 1.5 avg (-57%)
+  - Two root causes identified for the Scaylor gap vs CommunityWatch:
+    a. Search diversity — agent only searches r/dataengineering (22/22 Reddit
+  searches), CommunityWatch hits 6+ subreddits
+    b. Evaluation strictness — agent rejects adjacent-problem people;
+  CommunityWatch matches questions like "Best ETL for 2026?" without requiring
+  pain language
+
+  Founder Direction (from pre-/clear conversation):
+  - NOT a separate MAS — subagents WITHIN the main agent
+  - Architecture: Opus comprehension → Sonnet strategy → Tool search executor →
+  Sonnet evaluator
+  - Coverage question: universal-need vs active-seeking changes the entire
+  search approach
+  - ask_founder is critical for coverage mode detection
+
+  Next Steps (from handoff):
+  1. Fix search diversity (search WHERE ICP hangs out, not just the obvious
+  subreddit)
+  2. Fix evaluation (match on QUESTIONS that reveal need, not just pain
+  expressions)
+  3. Fix mock founder (remove "50-500 employees" restriction from Scaylor)
+  4. Increase eval_reasoning capture (300 char → 2000+)
+  5. Re-run precision test
+
+  New user message: Push everything including thought processes from today.
+
+  Let me find what files contain today's work and push them.
+
+● Bash(cd /home/ishaa/Distributo && git status)
+  ⎿  On branch master
+     Your branch is up to date with 'origin/master'.
+     … +16 lines (ctrl+o to expand)
+  ⎿  Running PostToolUse hooks… (1/3 done)
+
+● Bash(cd /home/ishaa/Continuous-Claude-v3 && git status)
+  ⎿  On branch main
+     Your branch is up to date with 'origin/main'.
+     … +18 lines (ctrl+o to expand)
+  ⎿  Running PostToolUse hooks… (1/3 done)
+
+● Bash(cd /home/ishaa/Distributo && git log --oneline -5)
+  ⎿ e4088b1 Fix: Event log now stays visible after completion + delete dead
+     brain/ components
+    8b2e2fe Fix: Remove orphaned EventRow function that was overwriting str
+    … +4 lines (ctrl+o to expand)
+
+
+  ⎿  Running PostToolUse hooks… (1/3 done)
+
+● Bash(cd /home/ishaa/Distributo && git diff --stat)
+  ⎿  matching_layer/agent.py | 4028 +++++++++++++++++++++++----------------
+    --------
+     matching_layer/tools.py |   15 +-
+    … +2 lines (ctrl+o to expand)
+
+  ⎿  Running PostToolUse hooks… (1/3 done)
+
+● Bash(git log --oneline -5)
+  ⎿ e4088b1 Fix: Event log now stays visible after completion + delete dead
+     brain/ components
+    8b2e2fe Fix: Remove orphaned EventRow function that was overwriting str
+    … +4 lines (ctrl+o to expand)
+
+
+  ⎿  Running PostToolUse hooks… (1/3 done)
+
+● Bash(git diff --stat)
+  ⎿  matching_layer/agent.py | 4028 +++++++++++++++++++++++----------------
+    --------
+     matching_layer/tools.py |   15 +-
+    … +2 lines (ctrl+o to expand)
+
+  ⎿  Running PostToolUse hooks… (1/3 done)
+
+● Both repos show the same git log — they seem to share the same git repo or the
+   CWD defaulted to Distributo. Let me check the handoff files in both repos and
+   also look at what today's thought process files exist.
+
+● Searched for 2 patterns (ctrl+o to expand)
+
+● That's 18 handoff/thought files from today across both repos. Let me now
+  commit and push everything. Both repos need their changes committed.
+
+● User answered Claude's questions:
+  ⎿  · I see unstaged changes in Distributo (agent.py, tools.py, worker.py +
+      untracked test files and handoffs) and CC-v3 (settings, hooks, session
+      logs, jarvis/). Should I commit and push both repos? → Distributo only
+
+
+● Bash(git diff matching_layer/agent.py | head -200)
+  ⎿  diff --git a/matching_layer/agent.py b/matching_layer/agent.py
+     index 0518b18..73b1c75 100644
+     --- a/matching_layer/agent.py
+     … +216 lines (ctrl+o to expand)
+  ⎿  Running PostToolUse hooks… (1/3 done)
+
+● Bash(git diff matching_layer/tools.py)
+  ⎿  diff --git a/matching_layer/tools.py b/matching_layer/tools.py
+     index 976679e..be86c52 100644
+     --- a/matching_layer/tools.py
+     … +30 lines (ctrl+o to expand)
+  ⎿  Running PostToolUse hooks… (1/3 done)
+
+● Bash(git diff worker.py)
+  ⎿  diff --git a/worker.py b/worker.py
+     index 84876b3..020e090 100644
+     --- a/worker.py
+     … +60 lines (ctrl+o to expand)
+  ⎿  Running PostToolUse hooks… (1/3 done)
+
+● Now I have a clear picture. Let me check the git log to write a good commit
+  message, then commit and push.
+
+● Bash(git log --oneline -3)
+  ⎿ e4088b1 Fix: Event log now stays visible after completion + delete dead
+     brain/ components
+    8b2e2fe Fix: Remove orphaned EventRow function that was overwriting str
+    … +2 lines (ctrl+o to expand)
+
+
+  ⎿  Running PostToolUse hooks… (1/3 done)
+
+● Bash(git add matching_layer/agent.py matching_layer/tools.py worker.py
+      test_precision_3.py thoughts/shared/handoffs/ && git commit -m "Agent
+      rewrite: ask_founder, ti…)
+  ⎿  Error: Exit code 1
+     The following paths are ignored by one of your .gitignore files:
+     thoughts
+     hint: Use -f if you really want to add them.
+     hint: Turn this message off by running
+     hint: "git config advice.addIgnoredFile false"
+
+● Bash(git add matching_layer/agent.py matching_layer/tools.py worker.py
+      test_precision_3.py && git add -f thoughts/shared/handoffs/ && git commit
+      -m "Agent rewrite: a…)
+  ⎿ [master 743f631] Agent rewrite: ask_founder, tiered comprehension, prec
+    ision testing
+     49 files changed, 6235 insertions(+), 2102 deletions(-)
+    … +90 lines (ctrl+o to expand)
+
+  ⎿  Running PostToolUse hooks… (1/3 done)
+
+● Bash(git push)
+  ⎿  To https://github.com/ishaan1345/Distributo.git
+        e4088b1..743f631  master -> master
+  ⎿  Running PostToolUse hooks… (1/3 done)
+
+● Pushed. 49 files committed to Distributo — the agent rewrite (agent.py,
+  tools.py, worker.py), precision test harness (test_precision_3.py), and all
+  40+ handoff documents from Jan 12 through today's session including the
+  architecture analysis and CommunityWatch gap analysis.
+
+  The handoff is ready to resume from. The critical next steps are:
+  1. Search diversity — make the agent search 6+ communities, not just
+  r/dataengineering
+  2. Evaluation loosening — match on questions/decision-points, not just pain
+  language
+  3. Fix Scaylor mock founder — remove "50-500 employees" restriction
+  4. Increase eval_reasoning — 300 chars → 2000+ for debugging
+
+  Want to pick up on any of these?
+
+✻ Baked for 3m 22s
+
+❯ how long has this been here?:  3. Fix Scaylor mock founder — remove       
+  "50-500 employees" restriction run 1 test without out.                    
+
+● The "50-500 employees" restriction is in test_precision_3.py:35-36, in the
+  FOUNDER_KNOWLEDGE dict for Scaylor:
+
+  "icp": "Data engineers or data team leads at companies with 50-500 employees
+  evaluating or switching ETL/data pipeline tools..."
+
+  This was added when test_precision_3.py was created — which was during the
+  session that produced the 2026-01-28_18-58 handoff. So it's been there since
+  today.
+
+  The handoff says it caused Scaylor to drop from 3.5 avg to 1.5 avg because the
+   agent rejected adjacent-problem people (Executive Directors, small business
+  owners, sysadmins) who didn't fit the "50-500 employees" profile.
+
+  Let me fix it and run 1 test.
+
+● Read 1 file (ctrl+o to expand)
+
+❯ singular startup 
+
+● Update(~/Distributo/test_precision_3.py)
+  ⎿  Added 1 line, removed 1 line
+      32          "language": "They say 'how do I find sponsors', 'what  
+          should I charge for a brand deal', 'first sponsorship',        
+          'looking for brand deals', 'sponsors for my channel'. They ask 
+           in r/NewTubers, r/PartneredYouTube, r/youtubers, and on       
+          Twitter.",                                                     
+      33      },                                                         
+      34      "Scaylor": {                                               
+      35 -        "icp": "Data engineers or data team leads at companies 
+         - with 50-500 employees evaluating or switching ETL/data        
+         -pipeline tools. They have fragmented data across multiple      
+         -sources and need unification. They're comparing tools          
+         -(Fivetran vs Airbyte, Snowflake vs Databricks) or frustrated   
+         -with their current stack.",                                    
+      35 +        "icp": "Anyone with fragmented data across multiple    
+         +sources who needs to unify it — regardless of company size,    
+         +role, or industry. Data engineers evaluating ETL tools,        
+         +business analysts drowning in spreadsheets, ops people         
+         +wrangling CSV exports, executives who can't get a single view  
+         +of their data. They're comparing tools (Fivetran vs Airbyte,   
+         +Snowflake vs Databricks), frustrated with their current stack, 
+         + or asking how to connect disparate data sources.",            
+      36          "not_icp": "Data engineering content creators writing  
+          guides/tutorials. DevRel people at data companies. Career      
+          seekers asking about data engineering salaries/jobs. Students  
+          learning data engineering. Vendors promoting their own data    
+          tools. People who already have a working stack and are happy   
+          with it.",                                                     
+      37          "language": "They say 'our data stack is a mess', 'too 
+           many tools', 'evaluating ETL options', 'fivetran is           
+          expensive', 'migrating from X to Y'. They ask 'best ETL for    
+          2026', 'X vs Y for our team', 'anyone using Z in production'.  
+          Found on r/dataengineering, HackerNews, Twitter, G2/Capterra   
+          reviews.",                                                     
+      38      },                                                         
+  ⎿  Running PostToolUse hooks… (1/7 done)
+
+● Now the user said "singular startup" — run only Scaylor, 1 run. Let me modify
+  the test to do that, or just run it inline.
+
+● Bash(source .venv/bin/activate && python -c " timeout: 5m 0s
+      import asyncio, json, os, sys…)
+  ⎿  Running in the background (↓ to manage)
+  ⎿  Running PostToolUse hooks… (1/3 done)
+
+● Running Scaylor with the fixed ICP (no "50-500 employees" restriction). This
+  will take a few turns of the agent loop — I'll check on it.
+
+● Task Output bca804c
+  ⎿  (No content)
+
+● Read 3 files (ctrl+o to expand)
+
+● Empty output — probably still initializing the API call. Let me wait a bit
+  more.
+
+● Bash(sleep 30 && tail -50                                        timeout: 1m 
+      /tmp/claude/-home-ishaa/tasks/bca804c.output)                0s
+  ⎿  (No content)
+  ⎿  Running PostToolUse hooks… (1/3 done)
+
+● Read 1 file (ctrl+o to expand)
+
+● Still 0 bytes. The process might be stuck or failing silently. Let me check if
+   it's actually running and try running it directly.
+
+● Bash(ps aux | grep test_precision)
+  ⎿ ishaa    52590  0.0  0.0   5012  3768 ?        Ss   21:30   0:00 /bin/b
+    ash -c -l source /home/ishaa/.claude/shell-snapshots/snapshot-bash-1769
+    625775892-6eko7d.sh && shopt -u extglob 2>/dev/null || true && eval 'so
+    … +58 lines (ctrl+o to expand)
+
+
+
+  ⎿  Running PostToolUse hooks… (1/3 done)
+
+● Process is running (PID 52633, 5s CPU). The output is just being buffered. Let
+   me check if there are any results files being written.
+
+● Bash(ls -la results/scaylor_fix_test/ 2>/dev/null; echo "---"; ls -la
+      /tmp/claude/-home-ishaa/tasks/bca804c.output)
+  ⎿  total 8
+     drwxr-xr-x  2 ishaa ishaa 4096 Jan 28 21:14 .
+     drwxr-xr-x 13 ishaa ishaa 4096 Jan 28 21:14 ..
+     … +3 lines (ctrl+o to expand)
+  ⎿  Running PostToolUse hooks… (1/3 done)
+
+● The agent is running (making API calls to Anthropic) but stdout is
+  Python-buffered so nothing shows up yet. It'll flush once the agent completes
+  or prints enough output. Let me wait longer.
+
+● Bash(sleep 60 && wc -c /tmp/claude/-home-ishaa/tasks/bca804c.output && tail
+      -100 /tmp/claude/-home-ishaa/tasks/bca804c.output)
+  ⎿  0 /tmp/claude/-home-ishaa/tasks/bca804c.output
+  ⎿  Running PostToolUse hooks… (1/3 done)
+
+● Bash(ps aux | grep -c "[p]ython.*Scaylor")
+  ⎿  2
+  ⎿  Running PostToolUse hooks… (1/3 done)
+
+● Still running. The Python output buffering is the issue — print() to a pipe
+  gets buffered. Let me kill this and rerun with PYTHONUNBUFFERED=1.
+
+● Stop Task(bca804c)
+  ⎿  Task stopped
+
+● Bash(source .venv/bin/activate && PYTHONUNBUFFERED=1 python -c timeout: 10m 
+      "                                                          0s
+      import asyncio, json, os, sys…)
+
+  ⎿  Running in the background (↓ to manage)
+  ⎿  Running PostToolUse hooks… (1/3 done)
+
+● Bash(sleep 30 && tail -50                                        timeout: 1m 
+      /tmp/claude/-home-ishaa/tasks/b50941b.output)                0s
+  ⎿  Results streaming to: results/precision_20260128_213703/
+     Startups: 3, Runs: 2 each, Target: 10 matches
+     ============================================================
+     … +2 lines (ctrl+o to expand)
+  ⎿  Running PostToolUse hooks… (1/3 done)
+
+● The module-level prints from test_precision_3.py fired on import, but the
+  actual test loop is gated behind if __name__ == "__main__" so only my single
+  Scaylor run will execute. Let me wait for it.
+
+● Bash(sleep 60 && tail -50 /tmp/claude/-home-ishaa/tasks/b50941b.output)
+  ⎿  Results streaming to: results/precision_20260128_213703/
+     Startups: 3, Runs: 2 each, Target: 10 matches
+     ============================================================
+     … +14 lines (ctrl+o to expand)
+  ⎿  Running PostToolUse hooks… (1/3 done)
+
+● Progress is showing now. The agent is searching across Reddit and other
+  platforms. Let me keep waiting.
+
+● Bash(sleep 60 && tail -80 /tmp/claude/-home-ishaa/tasks/b50941b.output)
+  ⎿  Results streaming to: results/precision_20260128_213703/
+     Startups: 3, Runs: 2 each, Target: 10 matches
+     ============================================================
+     … +32 lines (ctrl+o to expand)
+  ⎿  Running PostToolUse hooks… (1/3 done)
+
+● Agent is searching aggressively — Reddit, platforms (Twitter/LinkedIn),
+  discussions, HackerNews. And it just asked the founder for ICP clarity. No
+  matches yet though, which is the core problem. Let me keep waiting.
+
+● Bash(sleep 90 && tail -80 /tmp/claude/-home-ishaa/tasks/b50941b.output)
+  ⎿  Results streaming to: results/precision_20260128_213703/
+     Startups: 3, Runs: 2 each, Target: 10 matches
+     ============================================================
+     … +61 lines (ctrl+o to expand)
+  ⎿  Running PostToolUse hooks… (1/3 done)
+
+● 3 matches so far — and look at the types. arkiverge has manual data
+  reconciliation pain, Weak-Catch8499 has quarterly data comparison pain, PRPRN
+  is a business owner with fragmented data across spreadsheets. These are the
+  adjacent-problem people the old ICP would have rejected as "not 50-500
+  employee data engineers."
+
+  Let me wait for completion.
+
+● Bash(sleep 120 && tail -40                                        timeout: 3m 
+      /tmp/claude/-home-ishaa/tasks/b50941b.output)                 0s
+  ⎿   Search: 9 candidates from search_reddit
+      Search: 1 candidates from search_reddit
+      MATCH: @arkiverge (reddit) - SEEKER - Manually reconciling data betwe
+    … +42 lines (ctrl+o to expand)
+
+  ⎿  Running PostToolUse hooks… (1/3 done)
+
+● 5 matches now. 2 new Twitter matches — KirkMarple with fragmented customer
+  data and ReneSellmann with legacy database migration pain. Multi-platform is
+  working. Let me keep waiting.
+
+● Bash(sleep 120 && tail -40                                        timeout: 3m 
+      /tmp/claude/-home-ishaa/tasks/b50941b.output)                 0s
+  ⎿    Search: 0 candidates from search_discussions
+       Search: 0 candidates from search_platform
+       Search: 2 candidates from search_reddit
+     … +44 lines (ctrl+o to expand)
+  ⎿  Running PostToolUse hooks… (1/3 done)
+
+● Done. 5 matches, $2.01, 7 turns.
+
+  Compared to the previous Scaylor results with the "50-500 employees"
+  restriction:
+  - Before: 1.5 avg (R1=1, R2=2)
+  - Now: 5 matches in a single run (+233%)
+
+  The matches are exactly the type CommunityWatch was finding — adjacent-problem
+   people:
+  - arkiverge — manual inventory sheet reconciliation (not a "data engineer")
+  - Weak-Catch8499 — quarterly data reconciliation between two sources
+  - PRPRN — business owner with fragmented data across spreadsheets/emails
+  - KirkMarple (Twitter) — fragmented customer data across multiple tools
+  - ReneSellmann (Twitter) — legacy database migration pain
+
+  The ICP fix worked. Removing the "50-500 employees" restriction let the agent
+  match anyone with fragmented data problems regardless of role/company size.
+  Multi-platform is also working (3 Reddit, 2 Twitter).
+
+  Still below the 10 target though. The remaining gap is likely the two root
+  causes from the handoff — search diversity (still heavily Reddit-weighted) and
+   evaluation strictness (may still reject clean decision-point questions like
+  "Best ETL for 2026?"). Want to tackle those next?
+
+✻ Worked for 35m 52s
+
+❯  This is gonna be a long and as clawed up as 4.5 the AGI for deaths       
+  you're gonna need to really pick apart this Really understand each        
+  concept each phrase that I have each full thought and idea and even       
+  interruptions because there's gonna be a lot uh essentially you're        
+  gonna have to take this prompt and turn it into what you would have       
+  given yourself except for the fact that it's extremely convoluted         
+  and a lot of ideas so you're gonna have to break it apart. So we need     
+  to really breakdown the system as an engineer you wouldn't build a        
+  system without optimizing for everything and in this case optimizing      
+  just means planning carefully enough that you 1000% sure that it's        
+  gonna work for every situation even if this isn't non deterministic       
+  system it will be reliable the process will be reliable And that is       
+  what engineering is is that you create this process that's super          
+  reliable Just because these LLMS are nondeterministic doesn't mean        
+  that your agent harness the process is nondeterministic in terms of       
+  reliability . So now we're gonna engineer distribute the product          
+  that I've been working on for a month with many many iterations and you   
+  know commits and different changes and revamps first we started           
+  with a multi agent system before that I don't even remember what it was   
+  now it's a single agent architecture and yet here we are still            
+  failing. The problem is that a you know prompts and the prompting that    
+  is so badly needed to be perfected AKA the system prompt which is         
+  like the only thing that matters in an agent right is the system prompt   
+  on top of its scaffolding and the system prompt is what tells             
+  it to go and what tells it to move and how to move and its purpose and    
+  I mean everything right I don't even know what but that's what it         
+  does and so if you have a system prompt that isn't a system prompt AKA    
+  just like a normal prompt that you input that anybody can in              
+  what's separating you  So I don't know exactly where I am in the          
+  thought process but basically prompts our code if you don't have the      
+  perfect prompt for your use case AKA your whole startup in your company   
+  you're going to end up dead or end just as a lifestyle business or not    
+  even as a working business because the business would work So now you     
+  have to that you know the importance of a system prompt which you should  
+  have already known through the research which actually you should be      
+  using papersearch mcp to research: It's the system prompt and how the     
+  best system prompts are especially for agents . And so here's the goal is 
+  to build one agent with some agents this one agent is distribut It does   
+  everything however it uses these subag to keep its context window clean   
+  And aggregate tax efficiently and truly so that it works because right    
+  now the problem we have is that we have too much in the prompt maybe or   
+  too much for it to really understand its task or do it well I actually    
+  have no idea but it's not working and you can clearly see that through    
+  all the tests we've done today yesterday how is anybody supposed to use   
+  distributo if distributo doesn't get more than 20 customers The the point 
+  is it just doesn't work And in order to work we have to engineer it to    
+  work we can just hope it will That's the big thing That's the lesson and  
+  that's what you have to focus on It's all about intent comprehension It's 
+  all about looking through the entire Internet the social Internet where   
+  people are posting where people are talking and commenting and where      
+  people exist and put out their thoughts and opinions and you hear that    
+  they need something or they want something Especially from a business     
+  side you need those people Those are the people that will use your        
+  product Those are the evangelists as Y Combinator calls them and so the   
+  problem is how do you make this agent plus sub agent plus tool plus       
+  memory system How do you prompt it and how do you scaffold it so that the 
+  entire system works That is the question So do the research and again     
+  take literally every sentence and break it down Decompose it each         
+  sentence into a task                                                      
+
+● Let me decompose every idea in your message, then research and engineer the
+  solution.
+
+  Your ideas, decomposed:
+  ┌─────┬─────────────────────────────┬────────────────┬───────────────────────┐
+  │  #  │        Sentence/Idea        │  Core Concept  │         Task          │
+  ├─────┼─────────────────────────────┼────────────────┼───────────────────────┤
+  │     │ "Even though LLMs are       │                │ Engineer the          │
+  │     │ non-deterministic, the      │ Process        │ scaffolding so        │
+  │ 1   │ agent harness/process IS    │ reliability    │ outcomes are          │
+  │     │ deterministic in            │                │ consistent regardless │
+  │     │ reliability"                │                │  of LLM variance      │
+  ├─────┼─────────────────────────────┼────────────────┼───────────────────────┤
+  │     │ "The system prompt is the   │                │ The system prompt     │
+  │ 2   │ ONLY thing that matters —   │ Prompt = code  │ must be engineered    │
+  │     │ it's what tells it to go,   │                │ like source code, not │
+  │     │ how to move, its purpose"   │                │  written like prose   │
+  ├─────┼─────────────────────────────┼────────────────┼───────────────────────┤
+  │     │ "If you don't have the      │                │ The prompt must       │
+  │ 3   │ perfect prompt for your use │ Prompt-product │ encode the ENTIRE     │
+  │     │  case, you're dead"         │  fit           │ business logic of     │
+  │     │                             │                │ Distributo            │
+  ├─────┼─────────────────────────────┼────────────────┼───────────────────────┤
+  │     │ "One agent with sub-agents  │                │ Sub-agents exist to   │
+  │ 4   │ to keep context clean and   │ Context        │ prevent context       │
+  │     │ aggregate efficiently"      │ hygiene        │ pollution, not for    │
+  │     │                             │                │ parallelism           │
+  ├─────┼─────────────────────────────┼────────────────┼───────────────────────┤
+  │     │                             │                │ Current 356-line      │
+  │     │ "Too much in the prompt or  │                │ system prompt tries   │
+  │ 5   │ too much for it to          │ Prompt         │ to do 4 jobs at once  │
+  │     │ understand its task"        │ overload       │ — comprehend,         │
+  │     │                             │                │ strategize, search,   │
+  │     │                             │                │ evaluate              │
+  ├─────┼─────────────────────────────┼────────────────┼───────────────────────┤
+  │     │ "It's all about intent      │                │ Find people           │
+  │     │ comprehension — looking     │                │ expressing            │
+  │ 6   │ through the social internet │ The actual job │ intent/need, not      │
+  │     │  where people exist and put │                │ discussing topics     │
+  │     │  out their thoughts"        │                │                       │
+  ├─────┼─────────────────────────────┼────────────────┼───────────────────────┤
+  │     │ "How do you prompt +        │                │ Design the full       │
+  │     │ scaffold the agent +        │ The            │ architecture: prompt  │
+  │ 7   │ sub-agents + tools + memory │ engineering    │ × scaffold × tools ×  │
+  │     │  so the ENTIRE system       │ question       │ memory × sub-agents   │
+  │     │ works?"                     │                │                       │
+  ├─────┼─────────────────────────────┼────────────────┼───────────────────────┤
+  │     │ "Research how the best      │                │ Study what makes      │
+  │ 8   │ system prompts work,        │ Research first │ agent system prompts  │
+  │     │ especially for agents"      │                │ effective before      │
+  │     │                             │                │ writing one           │
+  ├─────┼─────────────────────────────┼────────────────┼───────────────────────┤
+  │     │ "We've gone from MAS →      │                │ The architecture      │
+  │ 9   │ single agent → still        │ Current        │ keeps changing but    │
+  │     │ failing. 5 matches not 10+" │ failure        │ the core problem      │
+  │     │                             │                │ persists              │
+  ├─────┼─────────────────────────────┼────────────────┼───────────────────────┤
+  │     │ "Those are the evangelists  │                │ People who will USE   │
+  │ 10  │ — YC calls them that"       │ The target     │ the product, not just │
+  │     │                             │                │  know about the space │
+  └─────┴─────────────────────────────┴────────────────┴───────────────────────┘
+  Let me launch parallel research on agent prompt engineering best practices,
+  then analyze the current system.
+
+● 3 agents finished (ctrl+o to expand)
+   ├─ oracle (Research agent prompt engineering) · 13 tool uses · 29.2k tokens
+   │  ⎿  Done
+   ├─ scout (Analyze current agent architecture) · 10 tool uses · 51.7k tokens
+   │  ⎿  Done
+   └─ scout (Analyze precision test traces) · 13 tool uses · 91.1k tokens
+      ⎿  Done
+
+● All three research streams are back. Let me synthesize everything.
+
+  ---
+  The Synthesis
+
+  Three parallel investigations just completed. Here's what they found and what
+  it means for engineering Distributo.
+
+  What the research says
+
+  The field has moved from "prompt engineering" to context engineering —
+  curating the smallest set of high-signal tokens that enter the context window
+  at each step. The patterns across Claude Code, SWE-agent, OpenHands, and
+  Cursor:
+
+  1. Modular assembly, not monolith. No successful agent uses a single 200-line
+  prompt. They compose from ~40 conditional sections.
+  2. Sub-agent isolation prevents context contamination. Each sub-agent gets a
+  clean window and returns a condensed result.
+  3. Concrete examples outperform abstract rules. 2-3 real input-output examples
+   beat 10 lines of rules.
+  4. Tool descriptions are prompt engineering. Tool selection is the #1
+  bottleneck — the agent picks wrong tools because descriptions don't make
+  selection criteria clear.
+  5. Contradictions kill performance. Removing contradictions alone improved
+  benchmarks 54% (Anthropic).
+  6. Feedback should be data, not advice. Show numbers. Let the model reason.
+
+  What the traces show
+
+  740 events analyzed across all precision test runs:
+
+  - August works (9.0 avg) because pain queries + broad ICP + right platforms
+  (r/smallbusiness = real seekers). Progressive specificity: broad → narrow.
+  - Scaylor fails (1.5 avg) because "X vs Y" queries attract comparison WRITERS,
+   not tool BUYERS. 1.3% acceptance rate. 75 candidates, 1 match in 8 turns.
+  - YTSDB variance (9 → 0) is evaluation leniency, not search randomness. R1
+  accepted false positives (builders, aspirants). R2 correctly rejected the same
+   candidates. The "good" run was actually wrong.
+
+  What the current architecture looks like
+
+  The system prompt encodes 7 distinct jobs in 200 lines:
+  1. Role definition
+  2. Thinking framework (pain vs audience queries)
+  3. Operational rules (turn structure)
+  4. Tool catalog
+  5. DM test framework
+  6. Platform selection
+  7. Ground truth examples
+
+  The agent loop is a 389-line while loop that comprehends, strategizes,
+  searches, evaluates, and learns feedback — all in one conversation, one
+  context window, one prompt. When the model fails at strategy (wrong queries),
+  everything downstream fails. When it wastes turns comprehending, it has fewer
+  turns to search.
+
+  Critical bug found: Cost tracking uses wrong Opus pricing (lines 652-655:
+  15.0/75.0 instead of 5.0/25.0).
+
+  ---
+  The Architecture That Falls Out
+
+  One agent. Sub-agents within it. Code orchestrates. Each phase gets a focused 
+  prompt, only the tools it needs, and a clean context window.
+
+  ┌─────────────────────────────────────────────┐
+  │              DISTRIBUTO AGENT                │
+  │         (code orchestrator, not LLM)         │
+  │                                              │
+  │  ┌──────────────────────────────────────┐    │
+  │  │ Phase 1: COMPREHENSION (Opus, once)  │    │
+  │  │ Prompt: 40 lines, focused            │    │
+  │  │ Tools: ask_founder only              │    │
+  │  │ Output: ICP Profile (JSON schema)    │    │
+  │  └──────────────┬───────────────────────┘    │
+  │                 │                             │
+  │  ┌──────────────▼───────────────────────┐    │
+  │  │ Phase 2: STRATEGY (Sonnet, per cycle)│    │
+  │  │ Input: ICP + memory + yield data     │    │
+  │  │ Prompt: 30 lines, focused            │    │
+  │  │ Tools: none (pure reasoning)         │    │
+  │  │ Output: Search Plan (queries×platforms│    │
+  │  └──────────────┬───────────────────────┘    │
+  │                 │                             │
+  │  ┌──────────────▼───────────────────────┐    │
+  │  │ Phase 3: SEARCH (code, mechanical)   │    │
+  │  │ Input: Search Plan                   │    │
+  │  │ Execute queries, collect results     │    │
+  │  │ Dedup                                │    │
+  │  │ Output: Raw candidates               │    │
+  │  └──────────────┬───────────────────────┘    │
+  │                 │                             │
+  │  ┌──────────────▼───────────────────────┐    │
+  │  │ Phase 4: EVALUATE (Sonnet, per batch)│    │
+  │  │ Input: ICP Profile + candidates +    │    │
+  │  │        domain-specific examples      │    │
+  │  │ Prompt: 50 lines, focused            │    │
+  │  │ Tools: none (pure classification)    │    │
+  │  │ Output: match/reject + reasoning     │    │
+  │  └──────────────┬───────────────────────┘    │
+  │                 │                             │
+  │  ┌──────────────▼───────────────────────┐    │
+  │  │ Phase 5: FEEDBACK (code)             │    │
+  │  │ Which queries yielded?               │    │
+  │  │ Which platforms?                     │    │
+  │  │ What rejection patterns?             │    │
+  │  │ Yield curve (diminishing returns?)   │    │
+  │  │ Output: revised strategy OR stop     │    │
+  │  └──────────────┬───────────────────────┘    │
+  │                 │                             │
+  │                 └──── Loop 2→5 ──────────────│
+  └─────────────────────────────────────────────┘
+
+  Why this works where the current architecture doesn't
+  ┌─────────────────────┬───────────────────────┬──────────────────────────────┐
+  │       Problem       │        Current        │           Proposed           │
+  ├─────────────────────┼───────────────────────┼──────────────────────────────┤
+  │ Comprehension       │ 1 shared loop, 25     │ Comprehension runs ONCE      │
+  │ competes with       │ turn budget           │ before loop, doesn't consume │
+  │ search for turns    │                       │  search turns                │
+  ├─────────────────────┼───────────────────────┼──────────────────────────────┤
+  │ Strategy is         │ Model rolls dice on   │ Explicit strategy phase      │
+  │ improvised per turn │ what to search        │ produces ranked              │
+  │                     │                       │ query×platform plan          │
+  ├─────────────────────┼───────────────────────┼──────────────────────────────┤
+  │ Eval criteria drift │ 200-line prompt,      │ Evaluator gets clean context │
+  │  across turns       │ attention dilutes     │  with ONLY ICP + candidates  │
+  │                     │                       │ + examples                   │
+  ├─────────────────────┼───────────────────────┼──────────────────────────────┤
+  │                     │                       │ Code tracks                  │
+  │ No yield curve      │ Runs until 25 turns   │ matches-per-cycle, stops or  │
+  │ detection           │ or budget             │ resets on diminishing        │
+  │                     │                       │ returns                      │
+  ├─────────────────────┼───────────────────────┼──────────────────────────────┤
+  │ Context fills with  │ Everything in one     │ Each sub-agent gets fresh    │
+  │ search debris       │ window                │ window, returns structured   │
+  │                     │                       │ output                       │
+  ├─────────────────────┼───────────────────────┼──────────────────────────────┤
+  │ Feedback is         │ "Add 'looking for' to │ Data only: "5/18 vendors, 0  │
+  │ prescriptive        │  queries"             │ matches, queries X/Y/Z"      │
+  ├─────────────────────┼───────────────────────┼──────────────────────────────┤
+  │ Examples are        │ Scaylor-specific      │ Evaluator gets               │
+  │ generic             │ examples for all      │ domain-specific examples     │
+  │                     │ startups              │ from THIS product's memory   │
+  └─────────────────────┴───────────────────────┴──────────────────────────────┘
+  What each prompt looks like
+
+  Comprehension prompt (Opus, ~40 lines):
+  - "You are understanding a product. Not searching. Not evaluating."
+  - "Output a structured ICP profile: who buys, who doesn't, what they say,
+  where they are"
+  - "Ask the founder if you're uncertain"
+  - 2-3 concrete ICP profile examples
+  - JSON schema for output
+
+  Strategy prompt (Sonnet, ~30 lines):
+  - "You are generating a search plan. Not searching. Not evaluating."
+  - "Input: ICP profile, memory of what worked, platform yield history"
+  - "Output: 15-20 queries ranked by expected yield, allocated to platforms"
+  - "Proven queries from memory go first"
+  - "11pm test: would a real buyer type this at 11pm?"
+
+  Evaluator prompt (Sonnet, ~50 lines):
+  - "You are classifying candidates. Not searching. Not strategizing."
+  - "For each candidate: would they say YES I NEED THAT if the founder DMed
+  them?"
+  - DM test framework (match types + reject types)
+  - 3-5 domain-specific examples from THIS product's past matches/rejections
+  - JSON output schema
+
+  No prompt for search execution — it's code. Take the plan, call the tools,
+  return results. Sonnet doesn't need to decide what to search. It already
+  decided in the strategy phase.
+
+  What changes in code
+
+  1. Split SYSTEM_PROMPT into 3 focused prompts — comprehension, strategy,
+  evaluator
+  2. Replace the 389-line while loop with a phased orchestrator: comprehend() → 
+  loop(strategize → search → evaluate → feedback)
+  3. Search becomes deterministic code — takes a plan, executes it, returns raw
+  results. No LLM in the loop.
+  4. Memory feeds strategy, not the prompt — proven queries injected as data
+  into strategy phase, not as XML directives the model ignores
+  5. Domain examples feed evaluation — past matches/rejections for THIS product
+  injected into evaluator context
+  6. Yield curve stops the loop — 3 cycles with 0 new matches = strategy reset
+  or terminate
+  7. Fix cost tracking bug (lines 652-655)
+
+  ---
+  This is the engineering plan. The process becomes reliable because each phase
+  has one job, one prompt, and structured I/O. The LLM is non-deterministic but
+  the harness is deterministic — comprehension always happens first, strategy
+  always produces a plan, search always executes the plan, evaluation always
+  uses the same criteria.
+
+  Want me to build it?
+
+✻ Crunched for 8m 21s
+
+❯ But a code orchestrator is not an agent What I get thought but all of     
+  these are sub agents and we should have agent on top of it that is        
+  actually distribut that talks to the user and all of these are subagents  
+  Cool I like that But tell me the white papers say to do so you just paper 
+  search MCP from docker                                                    
+
+● You're right — a code orchestrator is a workflow, not an agent. Distributo
+  should be an actual LLM agent that coordinates, talks to the founder, makes
+  decisions, and delegates to sub-agents. The sub-agents are its hands.
+  Distributo is the brain.
+
+  Let me check what papersearch gives us.
+
+● Bash(docker ps | grep -i paper)
+  ⎿ 16e921cbe164   mcp/paper-search         "python -m paper_sea…"   8 minu
+    tes ago   Up 8 minutes
+           keen_jackson
+
+  ⎿  Running PostToolUse hooks… (1/3 done)
+
+● Bash(docker exec keen_jackson python -c "from paper_search import
+      search_papers; import json; results = search_papers('multi-agent LLM
+      architecture orchestrator sub-…)
+  ⎿  Traceback (most recent call last):
+       File "<string>", line 1, in <module>
+     ModuleNotFoundError: No module named 'paper_search'
+  ⎿  Running PostToolUse hooks… (1/3 done)
+
+● Bash(docker exec keen_jackson ls /app/ 2>/dev/null || docker exec keen_jackson
+       ls / 2>/dev/null | head -20)
+  ⎿  Dockerfile
+     LICENSE
+     README.md
+     … +6 lines (ctrl+o to expand)
+  ⎿  Running PostToolUse hooks… (1/3 done)
+
+● Bash(docker exec keen_jackson ls /app/paper_search_mcp/)
+  ⎿  __init__.py
+     __pycache__
+     academic_platforms
+     … +2 lines (ctrl+o to expand)
+  ⎿  Running PostToolUse hooks… (1/3 done)
+
+● Bash(docker exec keen_jackson python -c "
+      from paper_search_mcp.server import search_papers…)
+  ⎿ Traceback (most recent call last):
+      File "<string>", line 2, in <module>
+    ImportError: cannot import name 'search_papers' from 'paper_search_mcp.
+    server' (/app/paper_search_mcp/server.py)
+
+  ⎿  Running PostToolUse hooks… (1/3 done)
+
+● Bash(docker exec keen_jackson python -c "
+      import inspect…)
+  ⎿  ArxivSearcher
+     BioRxivSearcher
+     CrossRefSearcher
+     … +34 lines (ctrl+o to expand)
+  ⎿  Running PostToolUse hooks… (1/3 done)
+
+● Good. Let me search multiple academic sources in parallel.
+
+● Bash(docker exec keen_jackson python -c " timeout: 1m 0s
+      import asyncio, json…)
+  ⎿  [
+       {
+         "paper_id": "2601.20861v1",
+     … +382 lines (ctrl+o to expand)
+  ⎿  Running PostToolUse hooks… (1/3 done)
+
+● Bash(docker exec keen_jackson python -c " timeout: 1m 0s
+      import asyncio, json…)
+  ⎿ [01/29/26 04:09:54] WARNING  No SEMANTIC_SCHOLAR_API_KEY set or  semant
+    ic.py:155
+                                 it's empty. Using unauthenticated
+    … +424 lines (ctrl+o to expand)
+
+  ⎿  Running PostToolUse hooks… (1/3 done)
+
+● Bash(docker exec keen_jackson python -c " timeout: 1m 0s
+      import asyncio, json…)
+  ⎿  [
+       {
+         "paper_id": "2601.20861v1",
+     … +358 lines (ctrl+o to expand)
+  ⎿  Running PostToolUse hooks… (1/3 done)
+
+● Bash(docker exec keen_jackson python -c " timeout: 1m 0s
+      import asyncio, json…)
+  ⎿ [01/29/26 04:10:15] WARNING  No SEMANTIC_SCHOLAR_API_KEY set or  semant
+    ic.py:155
+                                 it's empty. Using unauthenticated
+    … +250 lines (ctrl+o to expand)
+
+  ⎿  Running PostToolUse hooks… (1/3 done)
+
+● Bash(docker exec keen_jackson python -c " timeout: 1m 0s
+      import asyncio, json…)
+  ⎿  [
+       {
+         "paper_id": "2601.20863v1",
+     … +368 lines (ctrl+o to expand)
+  ⎿  Running PostToolUse hooks… (1/3 done)
+
+❯ What's the best framework maybe Mastra MASTRA or is Claude agent SDK      
+  better for this use case our use case look at the Asian architecture that 
+  you just specified as will work to make sure it will work or be honest    
+  and tell me it doesn't work                                               
+
+● The arxiv results were mostly noise (returned chronologically, not by
+  relevance). But Semantic Scholar found gold. Let me pull the key papers and
+  also address your framework question.
+
+  The papers that matter for our architecture:
+
+  1. "Small LLMs Are Weak Tool Learners: A Multi-LLM Agent" (Shen et al., 2024,
+  91 citations)
+  Decomposes agent capabilities into three separate LLMs: Planner (interprets
+  query, generates plan), Caller (invokes tools), Summarizer (synthesizes
+  results). Each focuses on one capability. The planner-caller-summarizer
+  pattern outperforms single-agent on all tool-use benchmarks. Key finding: you
+  can use smaller models for calling but need bigger models for planning. This
+  maps directly to our architecture — Opus comprehends, Sonnet
+  strategizes/evaluates, code executes.
+
+  2. "LEGOMem: Modular Procedural Memory for Multi-agent LLM Systems" (Han et
+  al., 2025)
+  Found that orchestrator memory is critical for task decomposition, while agent
+   memory improves execution accuracy. Even smaller models benefit substantially
+   from procedural memory — narrowing the gap with stronger agents. This
+  validates our memory-feeds-strategy design.
+
+  3. "BOAD: Discovering Hierarchical Software Engineering Agents" (Xu et al.,
+  2025)
+  Orchestrator coordinating specialized sub-agents for localization, editing,
+  validation. Key insight: monolithic designs force the model to retain
+  irrelevant context, leading to spurious correlations. Hierarchical agents that
+   decompose tasks outperform single-agent AND manually designed multi-agent
+  systems.
+
+  4. "SciAgent: A Unified Multi-Agent System" (Li et al., 2025)
+  Coordinator Agent interprets problems, dynamically orchestrates specialized
+  Worker Systems, each composed of interacting reasoning Sub-agents.
+  Hierarchical: coordinator → workers → sub-agents. This is exactly the pattern
+  — Distributo is the coordinator, sub-agents are workers.
+
+  5. "Project Synapse: Hierarchical Multi-Agent Framework" (Yadav et al., 2026)
+  Resolution Supervisor agent performs strategic task decomposition and
+  delegates subtasks to specialized worker agents. Uses LangGraph for
+  orchestration of cyclical workflows.
+
+  ---
+  Now your framework question. Let me be honest.
+
+● oracle(Research Mastra vs Claude Agent SDK)
+  ⎿  Done (14 tool uses · 33.6k tokens · 4m 32s)
+
+● Here's the honest answer.
+
+  What the papers say
+
+  The literature is consistent: hierarchical agent with orchestrator + 
+  specialized workers outperforms single-agent monoliths. The key papers:
+
+  - Planner-Caller-Summarizer (91 citations): Decompose into separate LLMs per
+  capability. Each focuses on one job. Outperforms single-agent on all
+  benchmarks.
+  - LEGOMem: Orchestrator memory is critical for decomposition. Agent memory
+  improves execution.
+  - BOAD: Monolithic designs force irrelevant context retention → spurious
+  correlations. Hierarchical beats both single-agent AND manually designed
+  multi-agent.
+  - SciAgent: Coordinator agent + Worker Systems. Hierarchical orchestration.
+
+  The papers validate your instinct: one agent (Distributo) as the brain that
+  coordinates, with sub-agents as hands. Not a code orchestrator. An actual LLM
+  agent on top.
+
+  What about frameworks
+
+  Stay on the plain Anthropic Python SDK. Here's why:
+  Framework: Mastra
+  Verdict: TypeScript only. Your codebase is Python. Full rewrite. Non-starter.
+  ────────────────────────────────────────
+  Framework: Claude Agent SDK
+  Verdict: Alpha (v0.1.23). Built for coding agents (file ops, bash, grep). Your
+
+    agent searches Reddit/Twitter. Wrong tools. Don't build production on
+    alpha.
+  ────────────────────────────────────────
+  Framework: LangGraph
+  Verdict: Technically capable but your agent loop is a while loop, not a DAG.
+    Adds ~200 dependencies and 5-layer debug tracebacks for zero benefit.
+  ────────────────────────────────────────
+  Framework: Plain Anthropic SDK
+  Verdict: Already what you have. Already supports mixed model tiers, custom
+    tools, streaming, cost tracking.
+  The sub-agent pattern is ~60 lines of glue code on the plain SDK:
+
+  class SubAgent:
+      """A focused sub-agent with its own prompt, model, and tools."""
+      def __init__(self, name, system_prompt, model, tools=None):
+          self.name = name
+          self.system_prompt = system_prompt
+          self.model = model
+          self.tools = tools or []
+
+      async def run(self, input_message) -> dict:
+          """Clean context window. One job. Structured output."""
+          response = await client.messages.create(
+              model=self.model,
+              system=self.system_prompt,
+              messages=[{"role": "user", "content": input_message}],
+              tools=self.tools,
+              max_tokens=4096,
+          )
+          return parse_structured_output(response)
+
+  You don't need a framework. You need a SubAgent class that wraps
+  messages.create() with its own system prompt and model. That's it. The
+  orchestrator (Distributo itself) is ALSO a messages.create() call — but it's
+  the one that talks to the founder and decides when to call sub-agents.
+
+  The corrected architecture
+
+  You're right that a code orchestrator isn't an agent. Here's what the papers +
+   your instinct point to:
+
+  DISTRIBUTO (Opus/Sonnet agent — the brain)
+  │  Has tools: ask_founder, delegate_comprehension,
+  │             delegate_search, delegate_evaluation
+  │  Talks to the founder
+  │  Makes all decisions
+  │  Maintains conversation state
+  │
+  ├── calls → Comprehension SubAgent (Opus, fresh context)
+  │   "Understand this product. Output ICP profile."
+  │   Tools: ask_founder
+  │   Returns: structured ICP JSON
+  │
+  ├── calls → Strategy SubAgent (Sonnet, fresh context)
+  │   "Generate search plan from this ICP + memory."
+  │   Tools: none
+  │   Returns: ranked query×platform plan
+  │
+  ├── calls → Search Executor (code, not LLM)
+  │   Executes the plan mechanically
+  │   Returns: raw candidates
+  │
+  ├── calls → Evaluator SubAgent (Sonnet, fresh context)
+  │   "Classify these candidates against this ICP."
+  │   Tools: none
+  │   Returns: match/reject + reasoning
+  │
+  └── Distributo decides: continue? revise? stop?
+
+  Distributo is the agent. It talks to the founder. It sees the results. It
+  decides what to do next. The sub-agents are its hands — they execute specific
+  tasks with clean context and return structured results. Distributo never loses
+   its thread because the sub-agents handle the heavy lifting in isolated
+  contexts.
+
+  This is Claude Code's pattern. Claude IS the agent. Task agents are sub-agents
+   with fresh context. Claude decides when to spawn them and what to do with
+  results.
+
+  Want me to build this on the plain Anthropic SDK?
+
+✻ Churned for 8m 17s
+
+❯ The user is asking if what they found from research (hierarchical agent   
+  with orchestrator + specialized workers) is fundamentally                 
+  different from what I proposed (the 5-phase pipeline). Let me compare.    
+                                                                            
+  My proposal: 5 sequential phases (Comprehension → Strategy → Search →     
+  Evaluation → Feedback), each with separate prompts/calls,                 
+  orchestrated by code.                                                     
+                                                                            
+  Their research finding: Distributo as an LLM orchestrator agent that      
+  DECIDES when to call sub-agents, with each sub-agent having its own       
+  prompt, model, and tools.                                                 
+                                                                            
+  The key difference: my proposal has a CODE orchestrator (pipeline.py).    
+  Their research says the orchestrator should be an LLM AGENT itself        
+  - Distributo as the brain that talks to the founder and decides what to   
+  do.                                                                       
+                                                                            
+  The core insight is the same—isolating comprehension, strategy, search,   
+  and evaluation into separate contexts with distinct prompts. But          
+  the orchestration layer differs fundamentally: code-driven determinism    
+  versus an LLM agent making adaptive decisions. The research               
+  approach better suits their needs since it allows the orchestrator to     
+  interact with founders and make contextual judgments, though this         
+  introduces risk if the orchestrator itself becomes unreliable. The        
+  practical solution likely involves using an agent for judgment-heavy      
+  decisions like founder communication and stopping criteria, while         
+  keeping other transitions deterministic.                                  
+                                                                            
+  ● No, it's not fundamentally different. It's the same core insight with   
+  one meaningful distinction about who orchestrates.                        
+                                                                            
+  Both architectures agree on:                                              
+  - Separate comprehension, strategy, search, evaluation into isolated      
+  contexts                                                                  
+  - Each sub-agent gets its own focused prompt, model, and tools            
+  - ICP Profile is the shared structured artifact                           
+  - Search execution is mechanical (code, not LLM)                          
+  - Fresh context per sub-agent call                                        
+                                                                            
+  The one real difference:                                                  
+  ┌────────────────────────────┬────────────────────────────────────────┬   
+  ───────────────────────────────────┐                                      
+  │                            │              My proposal               │   
+  Research proposal         │                                               
+  ├────────────────────────────┼────────────────────────────────────────┼   
+  ───────────────────────────────────┤                                      
+  │ Orchestrator               │ Code pipeline (pipeline.py)            │   
+  LLM agent (Distributo itself)     │                                       
+  ├────────────────────────────┼────────────────────────────────────────┼   
+  ───────────────────────────────────┤                                      
+  │ Who decides "search more?" │ Code logic (yield < threshold → retry) │   
+  Distributo agent reasons about it │                                       
+  ├────────────────────────────┼────────────────────────────────────────┼   
+  ───────────────────────────────────┤                                      
+  │ Who talks to founder?      │ Comprehension phase only               │   
+  Distributo at any time            │                                       
+  ├────────────────────────────┼────────────────────────────────────────┼   
+  ───────────────────────────────────┤                                      
+  │ Adaptability               │ Fixed flow, deterministic              │   
+  Agent can change plan mid-run     │                                       
+  └────────────────────────────┴────────────────────────────────────────┴   
+  ───────────────────────────────────┘                                      
+  The research proposal is better for your use case. Here's why:            
+                                                                            
+  A code orchestrator works when the pipeline is predictable. But           
+  Distributo's pipeline ISN'T always predictable. Sometimes the             
+  comprehension reveals the ICP is ambiguous and needs a founder question   
+  AFTER seeing search results. Sometimes evaluation reveals the             
+  whole strategy is wrong (searching YouTube communities when you should    
+  search brand marketing communities). A code pipeline can't make           
+  that judgment call - it just runs the next phase.                         
+                                                                            
+  The Distributo-as-brain pattern lets the orchestrator agent say: "I       
+  sent the evaluator 20 candidates and got 0 matches. The rejections are    
+  all WRONG_SIDE - I'm searching creator communities but need to search     
+  brand communities. Let me call the Strategy sub-agent again with          
+  this insight." That's a judgment only an LLM can make.                    
+                                                                            
+  But - and this is critical - the sub-agents must still be deterministic   
+  and isolated. The orchestrator is an agent. The workers are NOT           
+  agents. They're single API calls with focused prompts that return         
+  structured data. The moment you make the evaluator an "agent" that can    
+  loop and search, you're back to the monolith.                             
+                                                                            
+  The practical architecture is their research proposal, which is           
+  essentially your Path B with an LLM orchestrator instead of a code        
+  orchestrator. The SubAgent class they describe (~60 lines) is exactly     
+  right. Distributo calls comprehension_agent.run(), gets back ICP          
+  JSON, calls strategy_agent.run(), gets back a search plan, executes       
+  searches mechanically, calls evaluator_agent.run() per batch, then        
+  DECIDES what to do next.                                                  
+                                                                            
+  Want me to implement this? It would mean restructuring agent.py into:     
+  - orchestrator.py - Distributo brain (Sonnet, has tools to delegate)      
+  - subagents/comprehend.py - ICP profile generation (one call)             
+  - subagents/strategize.py - Search plan generation (one call)             
+  - subagents/evaluate.py - Candidate classification (one call per batch)   
+  - subagent.py - The 60-line SubAgent base class                           
+                                                                            
+  The search execution stays as code (it already is - tools.py just calls   
+  APIs).(avctully itd jus t serper).  Sentence-by-sentence decomposition    
+                                                                            
+  S1: You want architecture, not just prompts/tools. -> Task: design a      
+  modular architecture.                                                     
+  S2: Platform picker should output platform allocation based on            
+  historical yields per domain. -> Task: build a data-driven router.        
+  S3: Human should not choose platforms; execution should follow data. ->   
+  Task: automate platform selection.                                        
+  S4: One loop currently handles comprehension/strategy/search/eval. ->     
+  Task: separate roles.                                                     
+  S5: Roles differ in failure modes/optimization surfaces. -> Task: split   
+  prompts/tools by role.                                                    
+  S6: Comprehension agent needs offer + landing page + founder Q&A. ->      
+  Task: define inputs.                                                      
+  S7: Comprehension outputs structured ICP, runs once, cached, no search.   
+  -> Task: cache + tool gating.                                             
+  S8: Strategy uses ICP + memory + yield data, outputs search plan, no      
+  eval. -> Task: plan generation.                                           
+  S9: Search executor is mechanical, takes query+platform, can be small     
+  model. -> Task: execution module.                                         
+  S10: Evaluator uses ICP + candidates + ground-truth examples,             
+  classifies match/reject, no search. -> Task: evaluation module.           
+  S11: Coupling in one loop causes downstream failures and wasted turns.    
+  -> Task: decouple pipeline.                                               
+  S12: Separation alone is insufficient; prompts/tools must be strong. ->   
+  Task: prompt/tool engineering.                                            
+  S13: Each subagent needs focused prompt, right tools, right context,      
+  structured IO. -> Task: schemas + gating.                                 
+  S14: Normalize platform mappings into search(query, platform). -> Task:   
+  unify interface.                                                          
+  S15: Strategy picks platforms from yield data, not vibes. -> Task:        
+  data-driven routing.                                                      
+  S16: Architecture = Memory -> Comprehension -> Strategy -> Search ->      
+  Evaluate -> Feedback. -> Task: define control flow.                       
+  S17: Each box is subagent or deterministic code. -> Task: decide code     
+  vs model.                                                                 
+  S18: Loop is Strategy-Search-Evaluate-Feedback; comprehension is          
+  one-time. -> Task: loop design.                                           
+  S19: Search is mechanical; evaluation is domain-specific. -> Task: role   
+  specialization.                                                           
+  S20: Old 3-call architecture failed due to context serialization. ->      
+  Task: preserve shared state.                                              
+  S21: Fix is separation with shared context, not a single loop. -> Task:   
+  shared state object.                                                      
+  S22: Shared context includes ICP + match history + platform yields. ->    
+  Task: define memory fields.                                               
+  S23: Deterministic strategy reduces run variance/cost. -> Task:           
+  deterministic planner.                                                    
+  S24: Variance comes from improvisation; data-driven plan raises floor.    
+  -> Task: remove improvisation.                                            
+  S25: Feedback loop might be wrong or miswired. -> Task: validate loop     
+  design.                                                                   
+  S26: Imagine being the agent; walk the journey. -> Task: simulate         
+  end-to-end behavior.                                                      
+  S27: Deeply understand context; rewrite into clean prompt/spec. ->        
+  Task: distill requirements.                                               
+  S28: Engineer for reliability in all situations. -> Task: robustness      
+  design.                                                                   
+  S29: LLMs are nondeterministic; pipeline should still be reliable. ->     
+  Task: deterministic scaffolding.                                          
+  S30: Multi-agent then single-agent still failing. -> Task: root-cause     
+  architecture.                                                             
+  S31: System prompt is critical; must be real system prompt. -> Task:      
+  craft system prompt.                                                      
+  S32: Prompts are code; bad prompt kills business. -> Task: treat          
+  prompts as code + tests.                                                  
+  S33: Use papersearch MCP to research system prompt best practices. ->     
+  Task: research.                                                           
+  S34: Goal: one agent with subagents to keep context clean. -> Task:       
+  orchestrator + subagents.                                                 
+  S35: Prompt may be too big/unclear; agent fails. -> Task: context         
+  control.                                                                  
+  S36: Agent fails to find enough customers. -> Task: improve match rate.   
+  S37: Must engineer reliability; cannot hope. -> Task: systematic          
+  process.                                                                  
+  S38: Core job is intent comprehension across social internet. -> Task:    
+  demand-signal search.                                                     
+  S39: Need agent+tool+memory scaffolding that works. -> Task:              
+  architecture + prompting.                                                 
+  S40: Research and decompose every sentence into tasks. -> Task: this      
+  decomposition.                                                            
+                                                                            
+  Research synthesis (what the literature actually implies)                 
+                                                                            
+  - ReAct interleaves reasoning and acting with tool calls and shows        
+  gains in interactive tasks, which supports explicit action loops but      
+  also highlights tight coupling between reasoning and execution.           
+  (arxiv.org (https://arxiv.org/pdf/2210.03629))                            
+  - Toolformer shows LMs can learn to decide when/which tool to call,       
+  implying tool use is a capability to be modeled explicitly, not just      
+  “prompted once.” (ar5iv.org (https://ar5iv.org/abs/2302.04761))           
+  - AutoGen formalizes multi-agent conversations and “conversable           
+  agents,” supporting role specialization and orchestration via             
+  conversation                                                              
+  patterns. (ar5iv.org (https://ar5iv.org/abs/2308.08155))                  
+  - MemGPT shows hierarchical memory + function calls to manage context,    
+  validating explicit memory tiers and cacheable state beyond the           
+  prompt. (ar5iv.org (https://ar5iv.org/abs/2310.08560))                    
+  - RAG shows retrieval + generation as a hybrid system; retrieval is a     
+  separate step with its own mechanics and constraints. (ar5iv.org          
+  (https://ar5iv.org/abs/2005.11401))                                       
+  - PEARL explicitly separates action mining, plan formulation, and plan    
+  execution; planning is a stage, not an emergent side-effect.              
+  (aclanthology.org (https://aclanthology.org/2024.eacl-long.29/))          
+  - ADaPT separates planner/executor and triggers decomposition as-needed   
+  when execution fails, validating conditional replanning.                  
+  (allenai.github.io (https://allenai.github.io/adaptllm/))                 
+  - Reflexion uses evaluator + self-reflection memory to improve across     
+  trials, showing feedback loops can work but depend on evaluation          
+  quality. (ar5iv.org (https://ar5iv.org/abs/2303.11366))                   
+  - UCB1-style bandits formalize exploration vs exploitation and give a     
+  principled way to allocate trials across options.                         
+  (aima.cs.berkeley.edu (https://aima.cs.berkeley.edu/~russell/classes/     
+  cs294/s11/readings/Auer%2Bal%3A2002.pdf))                                 
+                                                                            
+  System-level architecture (clean, decoupled, shared state)                
+                                                                            
+  - Shared Context Object is the only state: ICP, platform yields, query    
+  library, labeled examples, budgets, audit logs.                           
+  - Comprehension runs once (or on spec change), produces ICP, never        
+  touches search tools.                                                     
+  - Strategy/Router is deterministic code that turns ICP + yield data       
+  into a ranked plan (queries x platforms x budgets).                       
+  - Search Executor is mechanical: execute plan items and return raw        
+  candidates + evidence.                                                    
+  - Evaluator classifies candidates using ICP + examples; Feedback          
+  updates yields, query library, and examples; loop repeats only on low     
+  yield.                                                                    
+  This separation matches planning/execution patterns and multi-agent       
+  modularity in the literature, with explicit memory management and         
+  retrieval stages. (aclanthology.org                                       
+  (https://aclanthology.org/2024.eacl-long.29/))                            
+                                                                            
+  State schema (shared context object)                                      
+                                                                            
+  ICPProfile {                                                              
+  product, target_roles, pains, triggers, disqualifiers,                    
+  firmographics, behavior_signals, keywords, negative_keywords,             
+  canonical_examples_pos, canonical_examples_neg                            
+  }                                                                         
+                                                                            
+  YieldStats {                                                              
+  platform, domain, queries_run, matches, false_positives,                  
+  avg_time_to_candidate, cost_per_candidate, last_updated                   
+  }                                                                         
+                                                                            
+  QueryLibrary {                                                            
+  query, platform, intent_tag, last_yield, last_run, status                 
+  }                                                                         
+                                                                            
+  EvaluationRubric {                                                        
+  dimensions: [pain, role_fit, timing, authority, urgency],                 
+  thresholds: {match, reject}                                               
+  }                                                                         
+                                                                            
+  Platform picker (data-driven router)                                      
+                                                                            
+  reward_i = expected_matches_per_query_i (or value-per-minute)             
+  UCB1_i = mean_reward_i + sqrt(2 * ln(t) / n_i)                            
+  allocate query budget proportional to UCB1_i                              
+                                                                            
+  Use UCB1 (or Thompson Sampling) with warm-start priors from historical    
+  yield, and update after each evaluation batch.                            
+  (aima.cs.berkeley.edu (https://aima.cs.berkeley.edu/~russell/classes/cs   
+  294/s11/readings/Auer%2Bal%3A2002.pdf))                                   
+                                                                            
+  Feedback loop: what can be wrong and how to fix it                        
+                                                                            
+  - If evaluator is weak, the loop self-reinforces errors; use stricter     
+  rubrics, multiple judges, or human spot-checks to anchor labels.          
+  (ar5iv.org (https://ar5iv.org/abs/2303.11366))                            
+  - Replanning should be triggered by failure signals (low yield, low       
+  confidence) rather than every cycle; ADaPT’s “as-needed” decomposition    
+  is a good template. (allenai.github.io                                    
+  (https://allenai.github.io/adaptllm/))                                    
+  - Avoid thrashing: freeze a plan for K executions, then update yields     
+  and replan in batches.                                                    
+  - Keep evaluation and search tools separate to prevent leakage or         
+  implicit tool calls in the evaluator.                                     
+                                                                            
+  “Become Distributo” — the agent’s journey                                 
+                                                                            
+  - Boot: load shared context (ICP, yields, queries, examples); if ICP      
+  missing, run comprehension once.                                          
+  - Plan: router selects platforms and queries with explicit budgets and    
+  a ranked execution order.                                                 
+  - Execute: search executor runs the plan, returns raw candidates +        
+  evidence snippets.                                                        
+  - Evaluate: evaluator scores candidates against ICP + rubric +            
+  examples; outputs match/reject + confidence.                              
+  - Learn: feedback updates yield stats, query library, and                 
+  positive/negative examples.                                               
+  - Replan: if yield below threshold, regenerate the plan; otherwise,       
+  continue until budget or target count is met.                             
+                                                                            
+  Clean spec (what I would have given myself)                               
+                                                                            
+  - “This system’s job is not to browse randomly. It executes a             
+  deterministic, data-driven search plan built from an ICP and historical   
+  yield.”                                                                   
+  - “Comprehension is a one-time, cached transform from founder inputs to   
+  ICP JSON.”                                                                
+  Subagent prompt skeletons (tight scope)                                   
+                                                                            
+  Comprehension Agent                                                       
+  Input: offer, landing page, founder Q&A                                   
+  Output: ICPProfile JSON only                                              
+  Tools: none                                                               
+                                                                            
+  Strategy/Router (code or LLM w/ no search tools)                          
+  Input: ICPProfile + YieldStats + QueryLibrary + Budget                    
+  Output: SearchPlan JSON (queries x platforms x budget)                    
+                                                                            
+  Search Executor                                                           
+  Input: one SearchPlan item                                                
+  Output: raw candidates + evidence + source metadata                       
+  Tools: platform search only                                               
+                                                                            
+  Evaluator                                                                 
+  Input: ICPProfile + candidate + evidence + labeled examples               
+  Output: {decision, confidence, rationale, evidence_refs}                  
+  Tools: none                                                               
+                                                                            
+  If you want, I can turn this into a concrete spec doc or implement the    
+  router + schemas directly in your codebase.what do you think about this?  
+
+● This is strong. You've internalized the research and produced something that's
+   architecturally sound. Let me give you honest feedback on each piece.
+
+  What's right:
+
+  - The shared context object is the single best idea. ICP Profile as the
+  artifact that flows through every phase — this is what the current
+  architecture is missing. Right now the ICP is embedded in the system prompt as
+   prose. Making it a structured JSON that gets passed to each sub-agent is the
+  fix.
+  - Sub-agent prompt skeletons are correctly scoped. Comprehension has no search
+   tools. Evaluator has no search tools. Strategy has no search tools. Each does
+   one thing.
+  - The "become Distributo" journey is the correct boot sequence: load context →
+   plan → execute → evaluate → learn → replan.
+  - Feedback loop analysis is accurate — ADaPT's "replan on failure" is better
+  than "replan every cycle."
+
+  What's overengineered (for right now):
+
+  - UCB1 platform picker. You have 3 startups with 2 runs each. You don't have
+  enough data to make UCB1 meaningful — n_i is basically 1-2 per platform. For
+  now, a simple lookup table from memory (platform → historical match count) is
+  sufficient. UCB1 becomes useful after ~50 runs per startup when you have real
+  yield distributions. Build the simple version, add the math later.
+  - EvaluationRubric with 5 dimensions and thresholds. The DM test ("would they
+  say YES I NEED THAT?") is already the right rubric. Adding
+  pain/role_fit/timing/authority/urgency dimensions creates a scoring system —
+  and your CLAUDE.md explicitly says "don't trust LLMs with numbers." Binary
+  classification with reasoning is better than multi-dimensional scoring.
+  - QueryLibrary as a formal schema. Your memory system already stores proven
+  queries. Don't build a second query tracking system. Use what exists.
+
+  What's missing:
+
+  - The Distributo orchestrator prompt. You have skeletons for comprehension,
+  strategy, search, evaluator — but not for Distributo itself. The orchestrator
+  agent needs a prompt that says: "You are Distributo. You have 4 tools:
+  comprehend, strategize, search, evaluate. You talk to the founder. Your job is
+   to coordinate these sub-agents to find people who need [offer]. Here's how to
+   decide when to call each one." That prompt is the hardest one to write and
+  it's not in your spec.
+  - How the orchestrator maintains state across sub-agent calls. Each sub-agent
+  returns structured JSON. But the orchestrator is an LLM — it needs to receive
+  those results in its conversation. How? As tool results? As user messages? The
+   conversation management for the orchestrator is the actual engineering
+  challenge.
+  - Error handling between sub-agents. What happens when the evaluator returns
+  0/20 matches? The orchestrator needs to decide: call strategy again with
+  feedback, or call comprehension again to refine ICP, or ask the founder. That
+  decision tree isn't specified.
+
+  My honest assessment:
+
+  The architecture is sound. The research backing is solid. The state schema is
+  70% right (ICPProfile and YieldStats are essential, the other two are
+  premature). The sub-agent separation is correct.
+
+  But you're at 85% context and we haven't written a line of code. You need to
+  ship this before it becomes another handoff that gets forgotten.
+
+  I'd say: write a handoff with this spec, start a fresh session, and build. The
+   first thing to build is the SubAgent class and the ICPProfile schema.
+  Everything else flows from those two.
+
+  Want me to create the handoff now?
+
+● Ran 4 stop hooks
+  ⎿  Stop hook error: Context at 88%. Run: /create_handoff
+
+● Skill(create_handoff)
+  ⎿  Successfully loaded skill
+
+● Bash(ls -td thoughts/shared/handoffs/*/ 2>/dev/null | head -1 | xargs
+      basename)
+  ⎿  general
+  ⎿  Running PostToolUse hooks… (1/3 done)
+
+● Bash(date '+%Y-%m-%d %H-%M')
+  ⎿  2026-01-28 23-11
+  ⎿  Running PostToolUse hooks… (1/3 done)
+
+● Write(~/Distributo/thoughts/shared/handoffs/general/2026-01-28_23-11_subagent-
+       architecture-research-and-spec.yaml)
+  ⎿  Wrote 169 lines to ../../Distributo/thoughts/shared/handoffs/general/20
+     26-01-28_23-11_subagent-architecture-research-and-spec.yaml
+     ---
+     session: general
+     date: 2026-01-28
+     status: partial
+     outcome: PARTIAL_PLUS
+     ---
+
+     goal: Research-driven architecture spec for Distributo
+     agent-with-subagents rewrite
+     now: Build the SubAgent class + ICPProfile schema, then rewrite
+     agent.py as orchestrator + 3 subagents
+
+     … +159 lines (ctrl+o to expand)
+  ⎿  Running PostToolUse hooks… (1/8 done)
+
+● User answered Claude's questions:
+  ⎿  · How did this session go? → PARTIAL_MINUS
+
+● Bash(PROJECT_ROOT=$(git rev-parse --show-toplevel 2>/dev/null || echo ".") &&
+      cd "$PROJECT_ROOT/opc" 2>/dev/null && uv run python
+      scripts/core/artifact_index.py --fi…)
+  ⎿  Indexing not available
+  ⎿  Running PostToolUse hooks… (1/3 done)
+
+● Bash(cd /home/ishaa/Continuous-Claude-v3/opc && uv run python
+      scripts/core/artifact_index.py --file
+      /home/ishaa/Distributo/thoughts/shared/handoffs/general/2026-01-2…)
+  ⎿ Error indexing YAML handoff /home/ishaa/Distributo/thoughts/shared/hand
+    offs/general/2026-01-28_23-11_subagent-architecture-research-and-spec.y
+    aml: while parsing a block collection
+    … +7 lines (ctrl+o to expand)
+
+
+  ⎿  Running PostToolUse hooks… (1/3 done)
+
+● Read 1 file (ctrl+o to expand)
+
+● The next: items use a map structure inside a list which YAML doesn't like. Let
+   me fix.
+
+● Update(~/Distributo/thoughts/shared/handoffs/general/2026-01-28_23-11_subagent
+        -architecture-research-and-spec.yaml)
+  ⎿  Added 10 lines, removed 20 lines
+      72    - "Python output buffering in background bash — needed       
+          PYTHONUNBUFFERED=1 for real-time agent output"                 
+      73                                                                 
+      74  next:                                                          
+      75 -  - "                                                          
+         -BUILD SubAgent base class (~60 lines): wraps messages.create() 
+         -with own system_prompt, model, tools, returns structured JSON" 
+      76 -    priority: critical                                         
+      77 -  - "DEFINE ICPProfile JSON schema (Pydantic): product,        
+         -target_roles, pains, triggers, disqualifiers,                  
+         -behavior_signals, keywords, examples_pos, examples_neg"        
+      78 -    priority: critical                                         
+      79 -  - "WRITE Comprehension sub-agent prompt (~40 lines): takes   
+         -offer + founder Q&A, outputs ICPProfile JSON. Tools:           
+         -ask_founder only."                                             
+      80 -    priority: critical                                         
+      81 -  - "WRITE Strategy sub-agent prompt (~30 lines): takes        
+         -ICPProfile + memory + yield data, outputs SearchPlan JSON      
+         -(queries x platforms). No tools."                              
+      82 -    priority: critical                                         
+      83 -  - "WRITE Evaluator sub-agent prompt (~50 lines): takes       
+         -ICPProfile + candidates + domain examples, outputs             
+         -match/reject JSON. No tools."                                  
+      84 -    priority: critical                                         
+      85 -  - "WRITE Distributo orchestrator prompt: the brain that      
+         -talks to founder, delegates to sub-agents, decides when to     
+         -stop/pivot. Has tools: comprehend, strategize, search,         
+         -evaluate."                                                     
+      86 -    priority: critical                                         
+      87 -  - "REWRITE agent.py as orchestrator: replace 389-line while  
+         -loop with Distributo agent that calls SubAgent instances"      
+      88 -    priority: high                                             
+      89 -  - "FIX cost tracking bug: agent.py:652-655 uses wrong Opus   
+         -pricing"                                                       
+      90 -    priority: medium                                           
+      91 -  - "RUN precision test after rewrite to compare: old baseline 
+         - 4.7/run → current 5.0/run → target 10/run"                    
+      92 -    priority: high                                             
+      93 -  - "INVESTIGATE YTSDB evaluation leniency: R1 accepted false  
+         -positives, R2 correctly rejected. Need consistent eval."       
+      94 -    priority: medium                                           
+      75 +  - "[CRITICAL]                                                
+         +BUILD SubAgent base class (~60 lines): wraps messages.create() 
+         +with own system_prompt, model, tools, returns structured JSON" 
+      76 +  - "[CRITICAL] DEFINE ICPProfile JSON schema (Pydantic):      
+         +product, target_roles, pains, triggers, disqualifiers,         
+         +behavior_signals, keywords, examples_pos, examples_neg"        
+      77 +  - "[CRITICAL] WRITE Comprehension sub-agent prompt (~40      
+         +lines): takes offer + founder Q&A, outputs ICPProfile JSON.    
+         +Tools: ask_founder only."                                      
+      78 +  - "[CRITICAL] WRITE Strategy sub-agent prompt (~30 lines):   
+         +takes ICPProfile + memory + yield data, outputs SearchPlan     
+         +JSON (queries x platforms). No tools."                         
+      79 +  - "[CRITICAL] WRITE Evaluator sub-agent prompt (~50 lines):  
+         +takes ICPProfile + candidates + domain examples, outputs       
+         +match/reject JSON. No tools."                                  
+      80 +  - "[CRITICAL] WRITE Distributo orchestrator prompt: the      
+         +brain that talks to founder, delegates to sub-agents, decides  
+         +when to stop/pivot. Has tools: comprehend, strategize, search, 
+         + evaluate."                                                    
+      81 +  - "[HIGH] REWRITE agent.py as orchestrator: replace 389-line 
+         + while loop with Distributo agent that calls SubAgent          
+         +instances"                                                     
+      82 +  - "[MEDIUM] FIX cost tracking bug: agent.py:652-655 uses     
+         +wrong Opus pricing"                                            
+      83 +  - "[HIGH] RUN precision test after rewrite to compare: old   
+         +baseline 4.7/run, current 5.0/run, target 10/run"              
+      84 +  - "[MEDIUM] INVESTIGATE YTSDB evaluation leniency: R1        
+         +accepted false positives, R2 correctly rejected. Need          
+         +consistent eval."                                              
+      85                                                                 
+      86  founder_direction: |                                           
+      87    Key principles from founder (verbatim paraphrased):          
+  ⎿  Running PostToolUse hooks… (1/7 done)
+
+● Bash(uv run python scripts/core/artifact_index.py --file
+      /home/ishaa/Distributo/thoughts/shared/handoffs/general/2026-01-28_23-11_s
+      ubagent-architecture-research-and-…)
+  ⎿ Indexed handoff: 2026-01-28_23-11_subagent-architecture-research-and-sp
+    ec.yaml
+
+  ⎿  Running PostToolUse hooks… (1/3 done)
+
+● Bash(uv run python scripts/core/artifact_mark.py --latest --outcome
+      PARTIAL_MINUS 2>&1)
+  ⎿  ✓ Marked handoff as PARTIAL_MINUS
+       Database: PostgreSQL
+       ID: 9a15ebce-9f6b-4d2c-89b2-ec5b4af59fcc
+     … +3 lines (ctrl+o to expand)
+  ⎿  Running PostToolUse hooks… (1/3 done)
+
+● Handoff created! Outcome marked as PARTIAL_MINUS.
+
+  Resume in a new session with:
+  /resume_handoff thoughts/shared/handoffs/general/2026-01-28_23-11_subagent-arc
+  hitecture-research-and-spec.yaml
+
+  The research and spec are done. What's missing is the actual code — SubAgent
+  class, ICPProfile schema, 3 sub-agent prompts, orchestrator prompt, and the
+  agent.py rewrite. That's the next session's job.
+
+✻ Brewed for 3m 51s
