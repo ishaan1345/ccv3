@@ -14,8 +14,10 @@ Session files are JSONL at:
     ~/.claude/projects/{encoded-project-path}/{session-id}.jsonl
 
 The encoded path replaces / with - and prepends -.
-Example: /home/ishaa/Continuous-Claude-v3 -> -home-ishaa-Continuous-Claude-v3
+Example: /Users/ishaan/ccv3 -> -home-ishaa-Continuous-Claude-v3
 """
+
+from __future__ import annotations
 
 import json
 import os
@@ -24,9 +26,10 @@ import argparse
 from pathlib import Path
 from datetime import datetime, timezone
 from collections import defaultdict
+from typing import Optional
 
 
-def get_project_dir(project_path: str | None = None) -> Path:
+def get_project_dir(project_path: Optional[str] = None) -> Path:
     """Get the .claude/projects/ directory for a project."""
     if project_path is None:
         project_path = os.getcwd()
@@ -39,7 +42,7 @@ def get_project_dir(project_path: str | None = None) -> Path:
     return Path.home() / ".claude" / "projects" / encoded
 
 
-def list_sessions(project_dir: Path, last: int = 15, filter_text: str | None = None) -> list[dict]:
+def list_sessions(project_dir: Path, last: int = 15, filter_text: Optional[str] = None) -> list[dict]:
     """List recent sessions with their first user message."""
     sessions = []
 
@@ -410,7 +413,7 @@ def _extract_text(obj: dict) -> str:
     return ""
 
 
-def _find_session_file(project_dir: Path, session_id: str) -> Path | None:
+def _find_session_file(project_dir: Path, session_id: str) -> Optional[Path]:
     """Find session file by full or partial ID."""
     # Try exact match
     exact = project_dir / f"{session_id}.jsonl"

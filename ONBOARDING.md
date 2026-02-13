@@ -17,7 +17,7 @@ CCV3 is the Claude Code infrastructure layer — hooks, skills, agents, scripts,
 
 ## Key Projects Using CCV3
 
-### Distributo (`/home/ishaa/Distributo/`)
+### Distributo (`/Users/ishaan/Distributo/`)
 - **Repo:** `github.com/ishaan1345/Distributo`
 - **What:** Autonomous lead-finding system. Finds people expressing purchase intent online, matches against ICP, delivers verified leads.
 - **Architecture:** Orchestrator + 3 sub-agents (comprehension, search, eval) with compound learning

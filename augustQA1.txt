@@ -1,0 +1,372 @@
+
+           Claude Code v2.1.37
+▗ ▗   ▖ ▖  Opus 4.6 · Claude Max
+           ~/ccv3
+  ▘▘ ▝▝    Opus 4.6 is here · $50 free extra usage · Try fast mode or use i…
+
+╭──────────────────────────────────────────────────────────────────────────────╮
+│ Plan to implement                                                            │
+│                                                                              │
+│ August QA Agent — Final Implementation Plan                                  │
+│                                                                              │
+│ Synthesized from two independent agent analyses                              │
+│                                                                              │
+│ Context                                                                      │
+│                                                                              │
+│ August is an early-stage sales intelligence platform ("Gong for outside      │
+│ sales") with 6 platforms (Web, iOS, Android, Desktop PC/Mac, Apple Watch).   │
+│ Team is migrating Firebase → Postgres on Neon, causing cascading sync        │
+│ issues. Frequent deploys + early stage = lots of UI bugs. Jamie wants a QA   │
+│ agent that any team member can point at any URL (prod, dev, staging,         │
+│ localhost) and have it test August's web app like a real user.               │
+│                                                                              │
+│ Deliverable: Bash-executable QA agent. Not a test suite — an agent that      │
+│ navigates, clicks, creates data, verifies CRM sync, and reports bugs with    │
+│ screenshot/GIF evidence.                                                     │
+│                                                                              │
+│ Architecture: browser-use + Claude + AUGUST_CONTEXT.md                       │
+│                                                                              │
+│ august-qa.sh (bash entry point — chmod +x)                                   │
+│     └── python src/main.py --url <URL> [--workflow <name>] [--headed]        │
+│             ├── Loads AUGUST_CONTEXT.md (product knowledge — what "correct"  │
+│ looks like)                                                                  │
+│             ├── Loads .env (credentials) + config.yaml (settings)            │
+│             ├── Creates browser-use BrowserSession + Agent                   │
+│             ├── Runs workflows sequentially:                                 │
+│             │   ├── 1. Login (prerequisite)                                  │
+│             │   ├── 2. Conversations (most critical)                         │
+│             │   ├── 3. CRM Entities (companies/contacts/deals)               │
+│             │   ├── 4. Overview & Coaching                                   │
+│             │   ├── 5. Todos                                                 │
+│             │   └── 6. HubSpot Verification                                  │
+│             └── Generates report (JSON + HTML + screenshots + GIFs)          │
+│                                                                              │
+│ Why browser-use (v0.11.8, already installed)                                 │
+│                                                                              │
+│ - Uses Playwright + Claude Vision under the hood → same AI "seeing" as       │
+│ Computer Use                                                                 │
+│ - Works headless natively (no Xvfb needed)                                   │
+│ - Multi-tab support → needed for HubSpot verification                        │
+│ - generate_gif=True → records agent's actions                                │
+│ - Natural language tasks → adapts to UI changes without selector maintenance │
+│ - sensitive_data param → masks passwords in logs                             │
+│                                                                              │
+│ Project Structure                                                            │
+│                                                                              │
+│ august-qa/                                                                   │
+│ ├── august-qa.sh                    # Bash entry point (chmod +x)            │
+│ ├── setup.sh                        # One-time: venv + deps + Chromium       │
+│ ├── requirements.txt                # browser-use, playwright, pydantic,     │
+│ pyyaml, python-dotenv                                                        │
+│ ├── .env.example                    # AUGUST_EMAIL, AUGUST_PASSWORD,         │
+│ ANTHROPIC_API_KEY, HUBSPOT_EMAIL, HUBSPOT_PASSWORD                           │
+│ ├── .gitignore                      # reports/, .env, __pycache__, .venv/    │
+│ ├── config.yaml                     # Non-secret settings: timeouts, test    │
+│ data prefix, model                                                           │
+│ ├── AUGUST_CONTEXT.md               # ★ Product knowledge for the agent      │
+│ ├── src/                                                                     │
+│ │   ├── __init__.py                                                          │
+│ │   ├── main.py                     # CLI orchestrator: parse args, run      │
+│ workflows, generate report                                                   │
+│ │   ├── agent.py                    # browser-use Agent wrapper: create,     │
+│ run, retry, evidence                                                         │
+│ │   ├── config.py                   # Load .env + config.yaml +              │
+│ AUGUST_CONTEXT.md                                                            │
+│ │   ├── reporter.py                 # Rich terminal output + JSON + HTML     │
+│ report                                                                       │
+│ │   └── workflows/                                                           │
+│ │       ├── __init__.py             # Registry of all workflows              │
+│ │       ├── base.py                 # BaseWorkflow: run(), build_prompt(),   │
+│ collect_results()                                                            │
+│ │       ├── login.py                # Email/password auth                    │
+│ │       ├── conversations.py        # Conversations tab: list, detail,       │
+│ retag, highlights, coaching                                                  │
+│ │       ├── crm_entities.py         # Create company/contact/deal, link      │
+│ conversation                                                                 │
+│ │       ├── overview.py             # Overview, rep selection, coaching      │
+│ reports, objections                                                          │
+│ │       ├── todos.py                # Mark important, mark done              │
+│ │       └── hubspot_verify.py       # New tab → navigate HubSpot → verify    │
+│ synced data                                                                  │
+│ └── reports/                        # Per-run outputs (gitignored)           │
+│     └── .gitkeep                                                             │
+│                                                                              │
+│ Critical File: AUGUST_CONTEXT.md                                             │
+│                                                                              │
+│ This teaches the agent what August looks like and what "correct" means.      │
+│ Every workflow prompt starts with this context. Non-technical team members   │
+│ can update it when the UI changes.                                           │
+│                                                                              │
+│ Contents (from Jamie's walkthrough):                                         │
+│ - Navigation structure (tabs: Conversations, Companies, Contacts, Deals,     │
+│ Overview, Todos)                                                             │
+│ - Conversations detail view layout (audio player, retag speakers,            │
+│ highlights, transcript, coaching, insights)                                  │
+│ - Entity creation forms (company needs name+domain, contact needs name, deal │
+│  needs name)                                                                 │
+│ - CRM sync behavior (action items, summaries, meeting records → HubSpot)     │
+│ - Overview page features (rep selector, AI takeaways, coaching reports,      │
+│ objections)                                                                  │
+│ - Todos behavior (mark important → appears in Todos, mark done → checked     │
+│ off)                                                                         │
+│ - Known bugs (retag speakers error, highlights missing colors, audio player  │
+│ collision)                                                                   │
+│                                                                              │
+│ Prompt Engineering Strategy                                                  │
+│                                                                              │
+│ Each workflow builds a prompt from three layers:                             │
+│ PROMPT = f"""                                                                │
+│ {AUGUST_CONTEXT}                    ← What August is and what it should look │
+│  like                                                                        │
+│                                                                              │
+│ {WORKFLOW_INSTRUCTIONS}             ← Step-by-step what to test              │
+│    Step 1: Navigate to X. You should see Y.                                  │
+│    Step 2: Click Z. Verify W appears.                                        │
+│    ...                                                                       │
+│                                                                              │
+│ {VERIFICATION_CRITERIA}             ← What counts as a bug                   │
+│    Report as BUG if: no conversations display, retag fails, highlights lack  │
+│ color...                                                                     │
+│                                                                              │
+│ {TEST_DATA_CONVENTIONS}             ← How to create test data                │
+│    Use prefix 'QA-Test-{{type}}-{{date}}-{{random4}}'                        │
+│ """                                                                          │
+│                                                                              │
+│ Workflow Specifications (from Jamie's walkthrough)                           │
+│                                                                              │
+│ Workflow 1: Login                                                            │
+│                                                                              │
+│ 1. Navigate to {url}                                                         │
+│ 2. Find email input → enter configured email                                 │
+│ 3. Find password input → enter configured password                           │
+│ 4. Click login/sign-in button                                                │
+│ 5. VERIFY: Dashboard loaded, no login errors                                 │
+│                                                                              │
+│ Workflow 2: Conversations (most critical)                                    │
+│                                                                              │
+│ 1. Click Conversations tab → VERIFY list of conversations with names + dates │
+│ 2. Click "My" sub-tab → VERIFY user's conversations shown                    │
+│ 3. Click "Team" sub-tab → VERIFY team conversations + member names visible   │
+│ 4. Click most recent conversation → VERIFY detail view loads:                │
+│   - Audio player present and functional                                      │
+│   - Participant names shown                                                  │
+│ 5. Find "Retag Speakers" → click → rename speaker to "QA-Test-Speaker"       │
+│   - KNOWN BUG: May show "Cloud function upgrade" error                       │
+│   - KNOWN BUG: Collision with audio player                                   │
+│ 6. Check Highlights section → VERIFY colors shown                            │
+│   - KNOWN BUG: Highlights not showing colors                                 │
+│ 7. Check Transcript → VERIFY text content displays                           │
+│ 8. Check Insights tab → handle gracefully if empty (no client = no insights) │
+│ 9. Click Coaching tab → VERIFY content loads                                 │
+│ 10. Click "Deep Dive" on any section → VERIFY expanded content               │
+│ 11. Find action item checkbox → tick it → VERIFY updates                     │
+│                                                                              │
+│ Workflow 3: CRM Entities                                                     │
+│                                                                              │
+│ 1. Navigate to Companies                                                     │
+│ 2. Click create → fill: name="QA-Test-Co-{date}-{rand}",                     │
+│ domain="qatest.example.com"                                                  │
+│ 3. VERIFY: Company appears in list                                           │
+│ 4. Navigate to Contacts                                                      │
+│ 5. Create contact: "QA-Test-Contact-{date}-{rand}"                           │
+│ 6. VERIFY: Contact appears                                                   │
+│ 7. Navigate to Deals                                                         │
+│ 8. Create deal: "QA-Test-Deal-{date}-{rand}"                                 │
+│ 9. VERIFY: Deal appears                                                      │
+│ 10. Link latest conversation to test company                                 │
+│ 11. VERIFY: Conversation linked                                              │
+│ 12. Back in Companies → VERIFY badges show correctly                         │
+│                                                                              │
+│ Workflow 4: Overview & Coaching                                              │
+│                                                                              │
+│ 1. Navigate to Overview tab → VERIFY displays with metrics                   │
+│ 2. VERIFY badges show up correctly                                           │
+│ 3. Select a specific rep from dropdown → VERIFY metrics update (page rejigs) │
+│ 4. Check AI Takeaways section                                                │
+│ 5. Click "Generate" coaching report → wait → VERIFY report content appears   │
+│ 6. Navigate to Objections → VERIFY objections display with data              │
+│                                                                              │
+│ Workflow 5: Todos                                                            │
+│                                                                              │
+│ 1. Navigate to a conversation → mark an action item as important             │
+│ 2. Navigate to Todos tab → VERIFY important item appears                     │
+│ 3. Check due date display ("no due date" is valid)                           │
+│ 4. Mark todo as done → VERIFY shows as completed                             │
+│                                                                              │
+│ Workflow 6: HubSpot Verification                                             │
+│                                                                              │
+│ 1. Open new browser tab                                                      │
+│ 2. Navigate to HubSpot (configured URL)                                      │
+│ 3. Log in with HubSpot credentials                                           │
+│ 4. Search for test company/contact/deal created in Workflow 3                │
+│ 5. VERIFY: Entity exists in HubSpot                                          │
+│ 6. VERIFY: Action items synced from conversation                             │
+│ 7. VERIFY: Conversation summary synced                                       │
+│ 8. Navigate to HubSpot Meetings → VERIFY meeting record shows                │
+│ 9. Close HubSpot tab, return to August                                       │
+│                                                                              │
+│ NOT Testing (per Jamie): CRM connect/disconnect — manual only                │
+│                                                                              │
+│ browser-use Agent Code Pattern                                               │
+│                                                                              │
+│ from browser_use import Agent, BrowserProfile, BrowserSession                │
+│ from browser_use.llm import ChatAnthropic  # NOT langchain — avoids          │
+│ ainvoke() compat issues                                                      │
+│ from dotenv import load_dotenv                                               │
+│                                                                              │
+│ load_dotenv()                                                                │
+│                                                                              │
+│ async def run_workflow(task: str, config: dict, session: BrowserSession):    │
+│     llm = ChatAnthropic(model=config["model"])                               │
+│     agent = Agent(                                                           │
+│         task=task,                                                           │
+│         llm=llm,                                                             │
+│         browser_session=session,                                             │
+│         use_vision=True,                                                     │
+│         generate_gif=True,                                                   │
+│         calculate_cost=True,                                                 │
+│         sensitive_data={                                                     │
+│             "x_email": os.environ["AUGUST_EMAIL"],                           │
+│             "x_password": os.environ["AUGUST_PASSWORD"],                     │
+│         },                                                                   │
+│         max_actions_per_step=5,                                              │
+│         use_thinking=True,                                                   │
+│     )                                                                        │
+│     result = await agent.run(max_steps=50)                                   │
+│     return result                                                            │
+│                                                                              │
+│ Config Files                                                                 │
+│                                                                              │
+│ .env.example                                                                 │
+│                                                                              │
+│ ANTHROPIC_API_KEY=sk-ant-...                                                 │
+│ AUGUST_EMAIL=qa-tester@helloaugust.ai                                        │
+│ AUGUST_PASSWORD=...                                                          │
+│ HUBSPOT_EMAIL=qa-tester@helloaugust.ai                                       │
+│ HUBSPOT_PASSWORD=...                                                         │
+│                                                                              │
+│ config.yaml                                                                  │
+│                                                                              │
+│ settings:                                                                    │
+│   model: "claude-sonnet-4-5-20250929"                                        │
+│   headed: false                                                              │
+│   timeout_per_workflow: 120  # seconds                                       │
+│   max_steps_per_workflow: 50                                                 │
+│   test_data_prefix: "QA-Test"                                                │
+│                                                                              │
+│ workflows:                                                                   │
+│   - login                                                                    │
+│   - conversations                                                            │
+│   - crm_entities                                                             │
+│   - overview                                                                 │
+│   - todos                                                                    │
+│   - hubspot_verify                                                           │
+│                                                                              │
+│ Terminal Output (expected)                                                   │
+│                                                                              │
+│ [august-qa] Starting QA run on https://app.helloaugust.ai                    │
+│ [login]          ✓ PASS — Logged in (4.2s)                                   │
+│ [conversations]  ✗ FAIL — 2 bugs found (38.1s)                               │
+│   BUG: Retag speakers shows "Cloud function upgrade" error                   │
+│   BUG: Highlights section missing colors                                     │
+│ [crm_entities]   ✓ PASS — Created company, contact, deal (22.3s)             │
+│ [overview]       ✓ PASS — Overview + coaching report generated (18.7s)       │
+│ [todos]          ✓ PASS — Todo marked as done (8.4s)                         │
+│ [hubspot]        ✓ PASS — Synced data verified in HubSpot (31.2s)            │
+│                                                                              │
+│ SUMMARY: 5/6 passed, 2 bugs found                                            │
+│ Report: reports/qa-report-2026-02-09T12-00-00.html                           │
+│ Cost: $1.23 (Claude API)                                                     │
+│                                                                              │
+│ Implementation Order                                                         │
+│                                                                              │
+│ Phase 1: Scaffolding + Context (20 min)                                      │
+│                                                                              │
+│ - Create directory structure, all config files                               │
+│ - Write AUGUST_CONTEXT.md (product knowledge)                                │
+│ - setup.sh, requirements.txt, .env.example, .gitignore                       │
+│                                                                              │
+│ Phase 2: Core Infrastructure (40 min)                                        │
+│                                                                              │
+│ - src/config.py — load .env + config.yaml + AUGUST_CONTEXT.md                │
+│ - src/agent.py — browser-use wrapper with retry, BrowserProfile,             │
+│ BrowserSession                                                               │
+│ - src/reporter.py — Rich terminal output + HTML report generation            │
+│ - src/workflows/base.py — BaseWorkflow class                                 │
+│                                                                              │
+│ Phase 3: Entry Points (20 min)                                               │
+│                                                                              │
+│ - src/main.py — CLI orchestrator (argparse/click)                            │
+│ - august-qa.sh — bash wrapper                                                │
+│                                                                              │
+│ Phase 4: Workflows (90 min)                                                  │
+│                                                                              │
+│ - login.py → conversations.py → crm_entities.py → overview.py → todos.py →   │
+│ hubspot_verify.py                                                            │
+│ - Each workflow: build_prompt() returns the full prompt, run() executes via  │
+│ agent                                                                        │
+│                                                                              │
+│ Phase 5: Polish (30 min)                                                     │
+│                                                                              │
+│ - HTML report template with embedded screenshots                             │
+│ - Error handling, graceful degradation                                       │
+│ - Final testing                                                              │
+│                                                                              │
+│ Total: ~3.5 hours of implementation                                          │
+│                                                                              │
+│ Risks & Mitigations                                                          │
+│ Risk: browser-use ~83% accuracy                                              │
+│ Mitigation: Retry logic (2x), rich context prompts, evidence on failure      │
+│ ────────────────────────────────────────                                     │
+│ Risk: Cost ~$1-2/run                                                         │
+│ Mitigation: calculate_cost tracking, Sonnet (not Opus), flash_mode option    │
+│ ────────────────────────────────────────                                     │
+│ Risk: HubSpot 2FA/CAPTCHA                                                    │
+│ Mitigation: Document as limitation, may need pre-authed cookies or skip for  │
+│ MVP                                                                          │
+│ ────────────────────────────────────────                                     │
+│ Risk: Headless flaky on macOS                                                │
+│ Mitigation: Default to headed=true initially, test headless separately       │
+│ ────────────────────────────────────────                                     │
+│ Risk: Agent confused by dynamic content                                      │
+│ Mitigation: AUGUST_CONTEXT.md teaches expected behavior                      │
+│ ────────────────────────────────────────                                     │
+│ Risk: UI redesign breaks prompts                                             │
+│ Mitigation: Update AUGUST_CONTEXT.md (natural language, easy to update)      │
+│ Verification Plan                                                            │
+│                                                                              │
+│ 1. ./setup.sh completes without errors                                       │
+│ 2. ./august-qa.sh --url <url> --workflow login --headed → watch login work   │
+│ 3. ./august-qa.sh --url <url> --workflow conversations --headed → watch      │
+│ conversation testing                                                         │
+│ 4. ./august-qa.sh --url <url> --headed → full run, all 6 workflows           │
+│ 5. HTML report opens with embedded screenshots                               │
+│ 6. GIF recordings show agent's actions                                       │
+│ 7. Known bugs (retag speakers, highlight colors) are caught and reported     │
+│ 8. echo $? → 0 for all pass, 1 for any failures                              │
+│                                                                              │
+│ Files to Create (15 total)                                                   │
+│                                                                              │
+│ 1. /Users/ishaan/ccv3/august-qa/august-qa.sh                                 │
+│ 2. /Users/ishaan/ccv3/august-qa/setup.sh                                     │
+│ 3. /Users/ishaan/ccv3/august-qa/requirements.txt                             │
+│ 4. /Users/ishaan/ccv3/august-qa/.env.example                                 │
+│ 5. /Users/ishaan/ccv3/august-qa/.gitignore                                   │
+│ 6. /Users/ishaan/ccv3/august-qa/config.yaml                                  │
+│ 7. /Users/ishaan/ccv3/august-qa/AUGUST_CONTEXT.md                            │
+│ 8. /Users/ishaan/ccv3/august-qa/src/__init__.py                              │
+│ 9. /Users/ishaan/ccv3/august-qa/src/main.py                                  │
+│ 10. /Users/ishaan/ccv3/august-qa/src/agent.py                                │
+│ 11. /Users/ishaan/ccv3/august-qa/src/config.py                               │
+│ 12. /Users/ishaan/ccv3/august-qa/src/reporter.py                             │
+│ 13. /Users/ishaan/ccv3/august-qa/src/workflows/__init__.py                   │
+│ 14. /Users/ishaan/ccv3/august-qa/src/workflows/base.py                       │
+│ 15. /Users/ishaan/ccv3/august-qa/src/workflows/login.py                      │
+│ 16. /Users/ishaan/ccv3/august-qa/src/workflows/conversations.py              │
+│ 17. /Users/ishaan/ccv3/august-qa/src/workflows/crm_entities.py               │
+│ 18. /Users/ishaan/ccv3/august-qa/src/workflows/overview.py                   │
+│ 19. /Users/ishaan/ccv3/august-qa/src/workflows/todos.py                      │
+│ 20. /Users/ishaan/ccv3/august-qa/src/workflows/hubspot_verify.py             │
+│ 21. /Users/ishaan/ccv3/august-qa/reports/.gitkeep                            │
+╰──────────────────────────────────────────────────────────────────────────────╯
+  ⎿  Interrupted · What should Claude do instead?

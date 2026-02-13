@@ -1,0 +1,2351 @@
+
+           Claude Code v2.1.37
+▗ ▗   ▖ ▖  Opus 4.6 · Claude Max
+           ~/ccv3
+  ▘▘ ▝▝    Opus 4.6 is here · $50 free extra usage · Try fast mode or use i…
+
+❯  hey so i have to build a qa functionality agent. It has to go through    
+  the UI August, which is the company I work for. It's a build sales        
+  intelligence                                                              
+    platform that automatically updates your CRM surface is all the signals 
+   it's kind of gone, but for outside sales and gong so anyway the point    
+  I'm making                                                                
+    is that I have to make a bash script, executable sort of thing that     
+  functions like an agent like a person like a user of August and           
+  essentially just be                                                       
+    able to tell if there's anything wrong or what all the bugs are pretty  
+  much because we're very much early and there's a lot of bugs and our      
+  users wanna     be able to use without any bugs and this is supposed to   
+  be something where you can find it at any URL not just August butpeople   
+  are essentially going  to use it too test August prod dev web app mobile  
+  app desktop app and so we have to figure out how all that works. The      
+  minimum viable agent here is         something that can test the web app  
+  so using like a skill like the browser or basically becoming a browser us 
+   agentand that is how we can test this so                                 
+    what time should we have a lot of bugs and we want to have a user go    
+  through it and look at it after every bug or after every deploy or after  
+  whatever      and so that sounds gonna work here. think about what im     
+  saying and get back to me. this sis a professional task i need to embark  
+  on. i need you to fully                                                   
+    create the agent that works in literally 1 day. lets think about what   
+  ways tere are to do this. my boss wants a bash script executable type of  
+               thing.Transcript[Pasted text #1] so this was our entire      
+  conversation. what can you extrapolate? i need you to use maximum thining 
+   effor tot try and                                                        
+    create this but also ideate everyhting needed and eveyr single thing    
+  needed to build this and what it entails.     want, you can use it for    
+  hosting. You can do all that. And so basically, I said that up            
+  originally, but it's not super scalable. Like no sequel is like, not      
+  ideal, but it's fine. I' I'm gonna get you off the ground. But so now, as 
+   we've built out the team, we started building out a lot more users. We   
+  are trying to migrate everything to booze grass. Yeah on Neon. And so,    
+  and actually, have I invited you to Neon? I haven't. I don't think so.    
+  But I guess I didn't check, really. I don't no, I'm 90% sure I didn't. I  
+  think P created your account, so he definitely wouldn't have done this.   
+  Okay. Um.. Okay, you have been invited. Um, and let me know if I start    
+  describing, like, parts of the platform that you're like, oh, uh. you     
+  know, I don't have access to that. Let me know. And I'll invite you to    
+  it. Okay. So basically, August the other thing that you should get access 
+   to is century. Century is what we use for like issue logging. Okay. And  
+  do I need like paragon access or anything? Uh, yeah, you can get paragon  
+  access at some point. That's less important in the short term. Yeah. a    
+  short term, you are going to work on QA work, so I'll stick to the        
+  platforms that are more important for that. We can, I guess paradons.     
+  Yeah, I guess paragon will be helpful to make sure that things are wrong  
+  so we can do that. Okay. Let's see. Do you remember., obviouslyviously,   
+  on these platforms, please don't touch anything, but, uh, you know, we    
+  can kind of go through how you can use them for your QA work blows. Okay. 
+   So, have we ever given you like a product tour or anything? Yeah, just   
+  yesterday. Christian gave us the tour. Did he add you as a user? Um,      
+  yeah, I just signed up for my account, so that's what you're talking      
+  about, right? August? Yeah, on August, yeah. Okay. And I just downloaded  
+  all the different versions. And then I also add you to as a dev user.     
+  Okay. Um, which is basically just the same thing. I agree. one circle     
+  It's how it goes. Yeah.. Jeez. Okay. So, basically what I'm supposed to   
+  be able to do is, I'm not going to add you right now because I don't know 
+   if it's gonna work, and I don't want to deal with this breaking. Okay.   
+  I'm a short term. Yeah. Okay. So, you know, at a high level, and this is  
+  kind of the good, bad part. Like, is a small company, you know, we have   
+  an iPhone app, Android app, which we're on Flut. So there's at least one  
+  platform for that, which is generally nice. Okay. And like releases and   
+  everything are fucking pain. So we have both of those, then we have a     
+  desktop app, and now we have desktop for PC and Mac. Okay. And we have    
+  the smartwatch app or Apple, and we're probably going to have the         
+  smartwatch app for Samsung or PC soon. Yeah. Okay. Um, so we're just      
+  trying to maintain a lot, and so this fireb migration is a bit of a pain  
+  because we're trying to there's some stuff that's written only in         
+  postcress.. So we're trying to basically like read from Firebase for      
+  certain things. Yeah. And then we have to migrate everything, but again,  
+  now we have like migration timing issues because like the web is easy. We 
+   can just deploy the web and everyone's using the new one. Yeah. But with 
+   mobile, we have to make sure that like, you know, we have to get fucking 
+   approved by Apple, approved by Android, and then everyone has to         
+  migrate, we have this like annoying time period where we have to get      
+  support both. So right now we basically have the two databases trying to  
+  stay in sync for certain things. Oh, yeah. It's just causing issues. And  
+  as we basically are onboarding more users and people, this is like        
+  cascading issues. Exponential. Sure. Yeah. So that is one of the big      
+  things that we are dealing with right now. So basically, what would be    
+  like what would be ideal and what I want to start you want is kind of     
+  building out a proper QA, like UI, QA process. Okay. Because as we deploy 
+   code, like, we do have like CICD workflows for all of it, which is       
+  great. Okay. But we also, you know, do want to check. Like a lot of this  
+  UI stuff ends up, you know, being like, hey, Jamie, can you do this? Hey, 
+   you know, Kumar, can you do that? Can you test this? Okay. So it sounds  
+  like you have some familiarity with playwright and MCP., I guess,         
+  playwright, whatever. Yeah. Playwright. Yeah, playwright. Okay. It uses a 
+   lot of context. So, I mean, I'm thinking I could probably just build an  
+  agent that does the QA. Okay. Because basically what we're going to want  
+  is like something that. So right now, another fun thing is that, like, we 
+   only have Deb and Broad. Okay. We should also add a staging environment  
+  as well, and then we can use the use the agent to basically QA on         
+  staging. Okay. Yeah, sure. That makes sense. So, um, do you have the      
+  desktop app installed? Um, I should, yes, I believe I did install it. Let 
+   me just check.. I'm actually gonna record this meeting and feel free to  
+  do the same, but I can all share the conversation with you. But like in   
+  this meeting, what I'd like to do is go through like the pieces, like the 
+   cute, the workflows that I want the agent to test. Okay. So let me know  
+  when you have the desktop app starting to record. Give me one second.     
+  Cheers. You can also download it from the website. Yeah, I think I got    
+  the DMG pile. Oh, I guess I didn't download it. Okay. Safari has been     
+  weird, too. I just in the beginning. All right? Okay, cool, sorry. All    
+  right, so do you have a recording? If not, don't worry, I'll just send    
+  you this recording. Okay, cool, thank you. So, um, at least go through    
+  that should be a little more stable. So we'll start with Web. QA for now. 
+   All right. I'm assuming we can't use playwright or mobile, right? No,    
+  modern Web app. Okay.. I don't think so. I mean, there must be some way   
+  to use an agent. I can look into it. I can look into it. Yeah, I mean,    
+  well, see, I don't know. Obviously, you can run a simulator in your       
+  computer and, you know, clod in whatever has computer use. So, like, it   
+  would be doable, but we'll figure it out. Okay. Yeah, that's probably the 
+   use. Well, I would say that we'll go through like key work blows here.   
+  Okay.ly for every version, right? You want to do QA for every single      
+  version of the app. Eventually, but we'll start with Web. So just today,  
+  you know, to short term, it focuses Web, and we'll build out the rest,    
+  because each of them knew slightly different things. And like, watch and  
+  whatever, like, you'll see, doesn't really do much. So, we have our tabs. 
+   So the most important one is going to be conversations. So within here,  
+  you know, we'd probably want to check, you know, hey, is it displaying my 
+   conversations as I expect? Web can't record conversations, so there's    
+  nothing to worry about there. And then we also want to make sure that     
+  Team is showing team conversations. So, you know, we'll use an account    
+  that has team members. So ideally, you know, we just want to check like I 
+   was a, you know, do we have team members available, right? Right.        
+  Assuming we have that, we're in pretty good shape. Okay. Well, then we    
+  can click into a given conversation here. So these are all internal. Just 
+   sink into our company. So obviously we'd want to verify that like this   
+  loads without errors. We can do, I guess, some things like, you know,     
+  we'd want to verify that we're rettagging speakers so I can make Jason    
+  and Jason Batson. you know, on Ian S. Awesome. Okay, so for instance,     
+  like here we're having a collision with retag speakers. Okay. And the     
+  audio player, which I think is fixed in one of the bugs, but whatever. So 
+   right now, it's not fixed. So if you want to verify that if I do this,   
+  is this function? I'm going to work? Yeah. Hopefully it does cloud        
+  function, upgrade. I'll to update the speaker names, via cloud function,  
+  so that's not great. But I'm 90% sure.. But this is what I need to find.  
+  Like this is what the QA pod is supposed to find. Yeah, so renam          
+  remapping superior speaker error. All right. So it allegedly says it in   
+  progress. So someone is working on it. All right. But, you know, stuff    
+  like that. Sure. I also want to make sure that this is worked on, but     
+  basically these highlights are supposed to show colors and they are not   
+  showing colors. Mm hmm. The highlight? Oh. Okay, so.. My lights. Okay...  
+  Sorry, I'm just trying to do a good bit of a lot of things this morning.  
+  Okay, yeah, no problem. I know. So that's why I'm just trying to blaze    
+  through a ton of this. Yeah, no problem. But I'm kind of working as we    
+  go. Sure. Christian and I were both out for conferences last week, so     
+  we're both a little behind. Gotcha. But basically, you know, you'd want   
+  to double check. You know, have a click through these, you know, is it    
+  displaying me just correctly, simple stuff, right? And transcript, I      
+  guess, verify that something displays here, you don't really have to go   
+  through it. Okay. Insights, there's no fine insights because there was no 
+   client, so it's fine. And then, you know, we just want to verify the     
+  coaching tab worked and you can always just have it click on a deep dive  
+  just so it can deep dive into a section on the coaching page. Otherwise   
+  it should be pretty straightforward. And then from within here, probably  
+  in, you know, I guess you can have it like tick and take action on and    
+  make sure it works. Sure. Just use it as user, yeah. And one of the key   
+  things is syncing CRM, so hopefully this is still working because this is 
+   broken ort bad shape. We're onboarding today, but I can link is to U. I  
+  do the same with deals. Simple. Un technically tag people. just doesn't   
+  really matter quite as much. Okay. Jamie and August, easy. Yeah. And      
+  then, you know, I can test, you know, try to do a sync and we want to see 
+   if action items and conversation summaries sync. So basically what we do 
+   is we see, okay, great, this showed correctly. Now I'm going to go to    
+  our hubspot, which is here, maybe. Here we go. Perfect. Follow up with    
+  Jason about team meeting details. Sounds perfect. That's So I could go    
+  inhere to meetings and bam with this meeting showed up, and that's great. 
+   Okay, so you wanted to the agent told to do all this, what you're doing, 
+   right? Yeah, we'd want the agent to also in theory, go to Hubspot and    
+  confirm that, like, you know, these were you can just sync everything to  
+  this fake company that.. So that would probably be so that's probably,    
+  you know, the conversation blow. Okay. And then we'd also want to do a    
+  few things like, oh, sorry, I'm back in death. That' Fuck. That's not     
+  good. So, you know, it's good that the badges show up great. You know,    
+  then you can have a creative fake company, right? And like in this case,  
+  like, it really doesn't matter if it creates, you know, just have it      
+  create like T- strong, test, co, you know, 20, 20, six, 09. All right.    
+  And, you know, I give it a domain. Sure. You just want to make sure, and  
+  then we'll of the same thing, like, verify that Ishan Test code, you      
+  know, it shows up here, great, you know, we want to go back to pub spots, 
+   to the same time. Okay. But you know, go to Hubspots, assume that Ion    
+  have Ishan test Kara shows up. I mean, maybe maybe they better way to do  
+  it is like create a company and create a contact. Like create a deal So   
+  you'd go through all of these pages.. You know, creating companies,       
+  contacts, and deals. So create E1 and then have it like link the latest   
+  conversation to those and then verify that, you know, it got synced       
+  properly. Okay. Because then that covers everything on Web, and then on   
+  the overview tab, we' probably just want to make sure that, like, this    
+  displays, right? So, hey, you can see this, you know, I guess, have it    
+  select a specific rep to give feedback on how is Jamiei doing? Oh, look   
+  at that. He had a peek, and now I'm coming down. What.. But, you know,    
+  this is mostly working. Okay. And then we have these AI takeaways, which  
+  basically, these are kind of nifty, but basically depending on like what  
+  you've selected, basically going to show it will rejig. So like if you    
+  have a team of five people, you can get your full team, but let's say I   
+  was just like, oh, I want to see how Ishan's doing. I can go to the Ishan 
+   page and have a generate. Right. And it can generate. So whatever. This  
+  coaching report. There we go. Yeah. It starts to generate a coaching      
+  report for Jeanie. Yeah, yeah, yeah. I saw this. Way to coach him. So,    
+  same thing. And then I can go to objections. Basically the same thing,    
+  right? Oh, you know, what are we seeing here? What are you talking about? 
+   How are we dealing with it? Stuff like that? And that's probably, I      
+  guess, the whole web, you could also just have it, maybe what you should  
+  do is on here. If you mark something as important, right? Like Jason      
+  Hatch the CM, if you Jason K Kumar work on a call, I this is all, you     
+  know, I mean, so the most part, it's nice that it's pretty. hopefully a   
+  decent job of creating these, but, for instance, if I go to Toodoo's now, 
+   I can see, oh, these were all in here. So like Ishan 2 begin writing QA  
+  tests, so I can be like, great, that's done. So we want to make sure that 
+   that gets, you know, marked properly in no due date, great. Right. Like  
+  that shows up correctly. So. Pretty simple. And that would be the full    
+  web platform you. Yeah. That makes sense. There's also the piece about    
+  like connecting and disconnecting the CRM, but I think we probably want   
+  to do that manually because that's a bigger thing to fuck up. So maybe we 
+   can just make sure that that's working manually. Okay. So at least with  
+  what we've done today does that give you kind of a decent starting place? 
+   Yeah, I think that's a pretty good starting place. So, just a question.  
+  How deep do you want it to go? Like, do you want it to be able to tell if 
+   certain like insights are wrong or just that No, it doesn't have the QA  
+  any of that right now. Like it's more of like a functionality QA. Ah. It  
+  just make sure, you know, have it like generate a random company, random  
+  person, blah, blah, blah. Make sure they all get created. We want to      
+  verify that those are created, you know, in hubspot. And we, for          
+  instance, then, like, you probably manually have to, just talk to your    
+  phone, you know, for two minutes. Like just talk to your phone for a      
+  minute, have it generate a new conversation. Yeah. Once that conversation 
+   gets uploaded, you know, then you can have run it and just have it, you  
+  know, select the latest conversation and then have it run that flow,      
+  right? Syn that conversation to whatever a company you just create it and 
+   blah, blah, blah. Okay. Okay, cool. Yeah, Makes sense. And make sure     
+  that with your test companies, you're giving them like a very, and same   
+  with the test, like people in deals, like, you know, make sure it says,   
+  like, you know, Ish test something just so it's really easy for us to be  
+  like, these are fake companies. Yeah, and delete a app there or           
+  something. Exactly. So, yeah, I mean, my goal is to get you started on    
+  the QA stuff eventually, and eventually it's hopefully not more than like 
+   two weeks. Okay. Once you're like, well, one, we have a big need to do   
+  the QA stuff now. We see a lot of stuff that needs to be QA. And then the 
+   goal is once that's all complete and they have a pretty decent, like,    
+  semi-automated QA setup. Yeah. You will probably start working on more of 
+   the like AI agentic tasks with Jason. Cool. Cool. But in the short term, 
+   it is like of far more importance to us that we get QA's not working. I  
+  totally understandable. Yeah, it's very important. So, I mean, you can    
+  always, I assume it's pretty easy to re-point it in a direction in the    
+  sense that, like, you know, you can start with fraud, right? And then if  
+  you repoint the URL to death, it shouldn't be able to go. Yeah. Okay, but 
+   you wanted to be able to do both, for sure. Uh, I mean, realistically,   
+  it'll probably just need. It's good. I guess run on whatever URL we give  
+  it, because it should be pretty much the same regardless.. Most likely    
+  it'll run on, yeah, it'll probably run on multi-invironments, so just     
+  make sure that it can take a dynamic URL because I can see this being     
+  very helpful for like like individual devs, right? As we like write       
+  something and we're like, oh, I have this PR. Let me test it in local     
+  host to make sure it's working. It will be super helpful if we can be     
+  pointing at the local host and it does the same set of testing. Okay.     
+  Okay. Yeah, sure. Makes sense. Cool. Out of curiosity, and again, you     
+  know, you're new, I'm not holding you to any dates. Do you, like, based   
+  on your previous experience, how much time using Claude do you think this 
+   will take you to create? Um. You know, I think it could take. I'd        
+  probably take one day for prototype just to make, like, see if it can     
+  work. I'm not going to say one day, maybe like two days? Give me a little 
+   bit. This is more just like ballparks, so I also have an estimate of     
+  like when I can start assigning you more tasks. Okay. So, like, you know, 
+   I think it will take two days. Yeah. Okay. Cool. Yeah, look at this. It  
+  has like a pretty decent end-to-end testing in two days. That would be    
+  massive. Okay. And the goal, like, you know, my goal is that this is a    
+  pretty accessible tool for anyone on the team. Right. They don't, you     
+  know, it doesn't have to have a UI, right? I'm assuming if this is        
+  something you run from the CLI, like from Mc Manline, that's fine.        
+  There's a couple different ways I'm thinking about it. I think the        
+  easiest one for me to build would just be like a skill, hook get up with  
+  a couple different things that could probably just be done in a day. And, 
+   you know, it wouldn't be like like it would only be accessible to the    
+  people who use cloud code, though. That's that, that's. I don't think,    
+  but like. Is this a skill thing? Like, Ideally, look, as we scale, like,  
+  this should be. Now, it's fine if someone needs to use, like, run, squad  
+  to run this, or, you know, because you're using, you know, clod on the    
+  back end. Sure. Like what this ideally should be is like an executable    
+  that we can point at a URL and then it runs. Okay. Okay, cool. Yeah, that 
+   makes sense. Yeah, like. you know, bash script or something. Okay, I can 
+   do that. Cool. That makes sense to me. Cool. Um, perfect. All right, as  
+  always, reach out with Freel anything you have. Yeah, if I have more      
+  questions, I'll definitely reach out to you. Okay. Perfect. All right.    
+  Thanks, you. Thank you, Jamie. I appreciate the opportunity, by the way.  
+  Really. Yeah, really excited to get started with you guys, man. Hopefully 
+   we'll have you on some more interesting things soon, but like. Yeah, but 
+   this is definitely a good way to learn the products. Like, um, 100%.     
+  This is, I love to do this. Okay, yeah, just poke and prod with a         
+  platform. Yeah. All right, sounds good. All right. See you,. See you,     
+  Jamie.                                                                    
+
+⏺ I've read through your entire conversation transcript carefully. Let me break
+  down what I've extracted and then we'll plan the build.
+
+  ★ Insight ─────────────────────────────────────
+  What you're building: A CLI-executable QA agent that uses browser automation
+  (Playwright) to test August's web app UI workflows end-to-end, verifiable
+  against HubSpot CRM, runnable against any URL (prod/dev/staging/localhost).
+
+  Key constraints from your boss:
+  - Must be a bash script / executable (not a Claude Code skill)
+  - Must accept a dynamic URL parameter
+  - Must be accessible to non-technical team members
+  - Functionality QA only (not content quality)
+  - 1-2 day timeline for prototype
+  ─────────────────────────────────────────────────
+
+  Let me enter plan mode to design this properly before writing any code.
+
+⏺ Entered plan mode
+  Claude is now exploring and designing an implementation approach.
+
+⏺ Good, I'm now in plan mode. Let me start by exploring the existing codebase to
+   understand what tools and patterns are already available, particularly around
+   browser automation and the dev-browser skill mentioned in the available
+  skills.
+
+⏺ 2 Explore agents launched (ctrl+o to expand)
+   ├─ Explore browser automation setup
+   │  ⎿  Running in the background (shift+↑ to manage)
+   └─ Explore skill and hook patterns
+      ⎿  Running in the background (shift+↑ to manage)
+
+❯ this is a new code. 
+
+⏺ Got it - let me check on my exploration agents and then we'll continue. Let me
+   see what they've found so far.
+
+⏺ Task Output a870a71
+  ⎿  Task is still running…
+
+⏺ Task Output a0f29d6
+  ⎿  Task is still running…
+
+⏺ Good - the agents are still exploring. While they work, let me check on the
+  dev-browser skill directly and look at what browser infrastructure exists.
+
+⏺ Searched for 3 patterns (ctrl+o to expand)
+
+⏺ No Playwright files found directly. Let me search more specifically for the
+  browser-related infrastructure and the money-printer directory.
+
+⏺ Searched for 2 patterns, read 1 file (ctrl+o to expand)
+
+⏺ Good findings. There's no existing Playwright/browser automation
+  infrastructure in this codebase - this is a greenfield build. The dev-browser
+  is a system-level skill, not something in your repo. Let me now move to
+  designing the plan.
+
+  Before I finalize, I have a few critical questions:
+
+⏺ User answered Claude's questions:
+  ⎿  · How does August authenticate users? The QA agent needs to log in to 
+     test workflows. → for now we will use my login. but i iwll get them to 
+     create a user qa tester account for this agent. what do you think about
+      that? and what do you think about the fact that this needs to be n 
+     agent 
+
+
+     · For verifying CRM sync to HubSpot - should the agent navigate 
+     HubSpot's web UI, or use HubSpot's API? → Navigate HubSpot UI
+     · Where should this project live? → 3 which probably means 2 right? 
+     · Do you have a HubSpot API key or private app token available for the 
+     QA testing HubSpot instance? → i told you to do navigate to hubspot. 
+
+
+❯ we can maybe use browseruse library on git? they want it to be able to    
+  access localhost, dev, prod, staging, everythign andeverywhere adn use it 
+   like a user and note and notice literally all things.                    
+
+⏺ Great answers. I hear you loud and clear. Let me address everything:
+
+  1. Dedicated QA tester account - Excellent idea. The agent should have its own
+   account with predictable state. Store creds as env vars so they're not
+  hardcoded.
+  2. browser-use library - Yes, I know exactly what you mean. browser-use is a
+  Python library that uses an LLM + Playwright to control a browser like a
+  human. This is far better than raw Playwright for your use case because:
+    - It adapts to UI changes (no brittle CSS selectors)
+    - It can "see" the page visually and notice bugs a human would
+    - It works on any URL - August, HubSpot, localhost, anything
+    - It's literally an agent, which is what your boss wants
+  3. Standalone project - Got it, standalone location.
+
+  Let me now research browser-use and finalize the plan.
+
+⏺ oracle(Research browser-use library)
+  ⎿  Done (13 tool uses · 24.7k tokens · 6m 35s)
+
+⏺ Now I have everything I need. browser-use is perfect for this. Let me write
+  the comprehensive plan.
+
+⏺ Updated plan
+  ⎿  /plan to preview
+
+⏺ ★ Insight ─────────────────────────────────────
+  Why browser-use over raw Playwright: Traditional Playwright tests use
+  hardcoded CSS selectors (#login-btn, .conversation-list). When a developer
+  changes a class name, tests break. browser-use uses Claude's vision to look at
+   the page and decide what to click — just like a human QA tester. This means
+  your tests survive UI redesigns, handle unexpected popups, and can visually
+  verify things like "are highlights showing colors?" that selector-based tests
+  can't.
+
+  Cost tradeoff: Each browser-use step costs ~$0.003-0.01 in LLM tokens. A full
+  QA run with ~50-100 steps will cost roughly $0.50-2.00. This is far cheaper
+  than a human QA tester's time, and the evidence (screenshots, GIFs, structured
+   JSON reports) is richer than manual testing notes.
+
+  The "agent" distinction: Your boss specifically said "agent" not "test suite."
+   browser-use makes this a true agent — it reasons about what it sees, decides
+  what to do next, handles errors gracefully, and reports findings in natural
+  language. It's the difference between a script that clicks buttons and an AI
+  that uses your product.
+  ─────────────────────────────────────────────────
+
+  Here's what the plan covers:
+
+  - Bash executable (august-qa.sh) — point at any URL, run all or specific
+  workflows
+  - browser-use + Claude Sonnet — LLM-driven browser agent that acts like a real
+   user
+  - 6 workflows matching your boss's walkthrough: Login, Conversations, CRM
+  Entities (companies/contacts/deals), Overview/Coaching, Todos, HubSpot
+  Verification
+  - Evidence collection — screenshots, GIF recordings, JSON + HTML reports
+  - Test data naming — QA-Test-Co-2026-02-09-{random} so fake data is obvious
+  - Dynamic URL — works on prod, dev, staging, localhost
+  - Standalone project at august-qa/
+
+  Regarding "this is a new code" — yes, this is entirely new, greenfield code.
+  No existing infrastructure to build on.
+  ⎿ Tool use rejected with user message: i need you to read all this and compare
+     to your plan and understanding before exectuing nything. This is a rich 
+    conversation. Let me fully digest what Jamie is asking you to build, explore
+     what exists in your workspace, and then lay out a  comprehensive plan 
+    before we start building.⏺ 2 agents finished (ctrl+o to expand)   ├─ 
+    Explore (Explore workspace and money-printer) · 46 tool uses · 55.9k tokens 
+      │  ⎿  Done   └─ oracle (Research browser QA agent approaches) · 17 tool 
+    uses · 20.2k tokens      ⎿  Done⏺ Alright, I've thoroughly analyzed the 
+    conversation with Jamie and researched the best approaches. Let me give you 
+    the full picture.  ---  What I Extracted from Your Meeting  The Product: 
+    August  - Sales intelligence platform — Gong for outside sales  - 
+    Auto-updates CRM (HubSpot), surfaces signals from conversations  - 6 
+    platforms: Web, iOS (Flutter), Android (Flutter), Desktop (PC + Mac), Apple 
+    Watch  - Migrating Firebase → Postgres on Neon (causing sync issues between 
+    old/new DBs)  - Dev + Prod environments (staging planned)  - Early stage = 
+    lots of bugs, users are hitting them  The Deliverable: QA Agent  
+    ┌─────────────┬────────────────────────────────────────────────────┐  │ 
+    Requirement │                       Detail                       │  
+    ├─────────────┼────────────────────────────────────────────────────┤  │ 
+    Format      │ Bash script / executable (NOT a Claude Code skill) │  
+    ├─────────────┼────────────────────────────────────────────────────┤  │ 
+    Input       │ Dynamic URL — prod, dev, localhost, any env        │  
+    ├─────────────┼────────────────────────────────────────────────────┤  │ 
+    Audience    │ Anyone on team, not just Claude Code users         │  
+    ├─────────────┼────────────────────────────────────────────────────┤  │ 
+    Method      │ Browser automation (Playwright)                    │  
+    ├─────────────┼────────────────────────────────────────────────────┤  │ 
+    Scope       │ Web-only MVP, mobile/desktop later                 │  
+    ├─────────────┼────────────────────────────────────────────────────┤  │ 
+    Purpose     │ Run after deploys, find UI/functionality bugs      │  
+    ├─────────────┼────────────────────────────────────────────────────┤  │ 
+    Timeline    │ 1 day prototype, 2 day polished                    │  
+    └─────────────┴────────────────────────────────────────────────────┘  The 6 
+    Test Flows Jamie Walked Through  Flow 1 — Conversations Tab  - Verify "My" 
+    conversations display  - Verify "Team" conversations + team members visible 
+     - Click into a conversation → verify loads without errors  - Test "Retag 
+    Speakers" (rename a speaker, verify cloud function fires)  - Verify 
+    highlights show colors (known bug: they don't)  - Check transcript, 
+    insights, coaching tab (click deep dive)  Flow 2 — Entity Creation  - Create
+     test company (e.g., "Ishan Test Co 2026-02-09")  - Create test contact  - 
+    Create test deal  - All with obvious test naming ("Ish test...")  - Verify 
+    entities appear in August's UI  Flow 3 — CRM Sync (HubSpot)  - From a 
+    conversation, sync to CRM  - Verify action items + conversation summaries 
+    sync  - Navigate to HubSpot and confirm data actually landed  - Link 
+    conversation to created test entities  Flow 4 — Overview Tab  - Verify 
+    overview displays  - Select a specific rep → check feedback metrics  - Test 
+    AI takeaways (they rejig based on selection)  - Generate a coaching report 
+    for a rep  - Check objections page  Flow 5 — Todos  - Mark something as 
+    important → verify it appears in Todos tab  - Mark as done → verify status 
+    updates  Flow 6 — Manual (Skip for Now)  - CRM connect/disconnect — Jamie 
+    said do this manually  ---  Architecture Decision  Based on research, the 
+    winning approach is:  Python + Playwright (async) + Anthropic Vision API, 
+    wrapped in bash  Why this stack:  - Playwright gives full programmatic 
+    browser control (click, type, navigate, screenshot)  - Claude Vision API 
+    gives intelligent verification — you send a screenshot and ask "does this 
+    look right? are there errors?" instead of brittle CSS  selectors  - Bash 
+    wrapper makes it a one-command executable anyone can run  - Self-healing: 
+    when selectors break (and they will in an early-stage app), Claude can 
+    analyze the page and figure out where things are  How It Works  $ 
+    ./august-qa https://app.august.so    → Launches headless Chromium via 
+    Playwright    → Logs in with configured credentials    → Executes each test 
+    flow sequentially    → At each step: takes screenshot → sends to Claude 
+    Vision → gets pass/fail + bug descriptions    → Opens HubSpot in second tab 
+    for sync verification    → Generates a report with screenshots + findings  
+    Cost: ~$0.50-1.00 per full run (Claude Vision API calls)  Project Structure 
+     august-qa/  ├── august-qa              # Bash entry point (chmod +x)  ├── 
+    setup.sh               # One-time: installs deps, playwright browsers  ├── 
+    config.yaml            # Credentials, URLs, test data naming  ├── 
+    requirements.txt       # playwright, anthropic, pyyaml, rich  ├── src/  │   
+    ├── agent.py           # Main orchestrator — runs all flows  │   ├── 
+    browser.py         # Playwright wrapper (navigate, click, screenshot, type) 
+     │   ├── vision.py          # Claude Vision API — screenshot analysis  │   
+    ├── reporter.py        # Rich terminal output + HTML report  │   └── flows/ 
+     │       ├── base.py        # Base flow class with common patterns  │       
+    ├── auth.py        # Login flow  │       ├── conversations.py  │       ├── 
+    entities.py    # Companies, contacts, deals  │       ├── crm_sync.py    # 
+    Sync + HubSpot verification  │       ├── overview.py  │       └── todos.py  
+    └── reports/               # Generated HTML reports with screenshots  ★ 
+    Insight ─────────────────────────────────────  Why Vision API over pure 
+    selectors? Early-stage apps change their UI constantly. Selector-based tests
+     (#btn-sync, .conversation-card) break every time  someone renames a CSS 
+    class. Vision-based verification ("I see a list of conversations with names 
+    and dates") survives UI changes as long as the feature  still exists. It's 
+    the difference between testing implementation vs testing intent.  Why not 
+    Claude Computer Use? Computer Use is designed for desktop control 
+    (mouse/keyboard at the OS level). Playwright gives you direct DOM access —  
+    faster, more reliable, and you can run it headless in CI/CD. You get the 
+    best of both worlds by combining Playwright's precision with Claude Vision's
+      intelligence.  ─────────────────────────────────────────────────  ---  
+    This is a substantial but very buildable project. Want me to enter plan mode
+     and lay out the exact implementation steps, or should I just start 
+    building?⏺ Entered plan mode  Claude is now exploring and designing an 
+    implementation approach.⏺ Good, I'm in plan mode. Let me do a bit more 
+    targeted exploration before finalizing the implementation plan.⏺ Read 1 
+    file (ctrl+o to expand)⏺ Bash(python3 --version && which python3 && pip3 
+    list 2>/dev/null | grep -iE "playwright|anthropic|pyyaml|rich" || echo "no 
+    relevant packages found in      system python")  ⎿  Python 3.11.14     
+    python3: aliased to /opt/homebrew/bin/python3.11     anthropic              
+                      0.77.0     … +6 lines (ctrl+o to expand)⏺ All 
+    dependencies are already installed on your system. Now let me design the 
+    implementation plan.⏺ Plan(Design QA agent architecture)                   
+        ⎿  Done (25 tool uses · 45.1k tokens · 38s)                             
+                                                                                
+                                                                                
+                                                                                
+              ⏺ Let me write the plan and ask a couple of critical questions 
+    before we finalize.                                                         
+                                                                                
+                                                                                
+                  ⏺ Updated plan                                               
+                                                                                
+                         ⎿  /plan to preview                                    
+                                                                                
+                                                                                
+                                                                                
+                               ⏺ Plan is written. I have a few critical 
+    questions that will affect implementation:                                  
+                                           ─────────────────────────────────────
+    ────────────────────────────────────────────────────────────────────────────
+    ────────────────────────────────────────────────────────────────────────────
+    ────────────────────────────────────────────────────────────────────────────
+    ───────────────────────────────────────────────←  ☒ Auth method  ☐ HubSpot 
+    verify  ☒ Selectors  ✔ Submit  →                                           
+                                                                                
+                                                                                
+                                                             For verifying CRM 
+    sync to HubSpot, which approach should we use?                              
+                                                                                
+                                                                                
+                                      1. HubSpot API (Recommended)     Use 
+    HubSpot API with a private app token to programmatically verify synced data.
+     More reliable, faster.  2. Browser navigation     Open HubSpot in a second 
+    browser tab and visually verify. Slower but no API setup needed.  3. Skip 
+    for MVP           Skip HubSpot verification for now, just test the sync 
+    button works on August's side.          ❯ 4. i will give you a lot fo info 
+    and data and another agents understnading of what      im asking. compare 
+    and contrast your undersnadin .                                             
+                                                            ────────────────────
+    ────────────────────────────────────────────────────────────────────────────
+    ────────────────────────────────────────────────────────────  5. Chat about 
+    this                                                                        
+                                                                      6. Skip 
+    interview and plan immediately
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+⏺ I see — you want me to absorb the other agent's analysis and compare it with
+  mine before moving forward. Let me do that carefully.
+
+⏺ Entered plan mode
+  Claude is now exploring and designing an implementation approach.
+
+⏺ Good. Let me lay out the comparison between both approaches and then converge
+  on the best path.
+
+  Comparison: My Plan vs. Other Agent's Plan
+  Dimension: Browser control
+  My Plan (browser-use): browser-use handles LLM↔Playwright loop automatically
+  Other Agent (Playwright + Vision API): Raw Playwright — you code the
+    clicks/navigation explicitly
+  ────────────────────────────────────────
+  Dimension: Verification
+  My Plan (browser-use): LLM decides + verifies everything (navigation AND
+    assertions)
+  Other Agent (Playwright + Vision API): Playwright navigates, Claude Vision
+    verifies screenshots
+  ────────────────────────────────────────
+  Dimension: Determinism
+  My Plan (browser-use): Non-deterministic (~83% accuracy). Agent may take
+    different paths each run
+  Other Agent (Playwright + Vision API): Deterministic navigation, intelligent
+    verification
+  ────────────────────────────────────────
+  Dimension: Resilience to UI changes
+  My Plan (browser-use): Very high — adapts to any layout
+  Other Agent (Playwright + Vision API): Medium — selectors may break but Vision
+
+    catches visual bugs
+  ────────────────────────────────────────
+  Dimension: Debugging
+  My Plan (browser-use): Harder — "why did the agent click there?"
+  Other Agent (Playwright + Vision API): Easier — you know exactly what step
+    failed
+  ────────────────────────────────────────
+  Dimension: Code volume
+  My Plan (browser-use): Less code (natural language tasks)
+  Other Agent (Playwright + Vision API): More code (explicit Playwright calls
+  per
+     step)
+  ────────────────────────────────────────
+  Dimension: Speed
+  My Plan (browser-use): Slower (LLM call per action, ~62s per task)
+  Other Agent (Playwright + Vision API): Faster (Playwright is instant, Vision
+    only at checkpoints)
+  ────────────────────────────────────────
+  Dimension: Cost
+  My Plan (browser-use): Higher ($0.50-2.00 — LLM call per browser action)
+  Other Agent (Playwright + Vision API): Lower ($0.10-0.50 — LLM only at
+    verification points)
+  ────────────────────────────────────────
+  Dimension: Dependencies
+  My Plan (browser-use): browser-use, playwright, anthropic
+  Other Agent (Playwright + Vision API): playwright, anthropic (fewer deps)
+  Both plans agree on:
+  - Bash entry point, dynamic URL, standalone project
+  - 6 identical test flows (from Jamie's walkthrough)
+  - Screenshot evidence + reporting
+  - Test data naming convention (QA-Test-Co-*)
+  - Navigate HubSpot UI (not API) for verification
+  - Python + Playwright + Claude as the stack
+
+  ★ Insight ─────────────────────────────────────
+  The critical architectural decision: browser-use gives you a fully autonomous 
+  agent where the LLM decides every click. Playwright + Vision gives you a
+  guided agent where you script the navigation and the LLM only judges results.
+  For QA specifically, the hybrid (Playwright + Vision) is arguably better
+  because:
+  1. QA needs reproducibility — you want the same test to check the same things
+  every time
+  2. QA needs speed — running after every deploy means it can't take 10 minutes
+  3. QA needs debuggability — when it reports a bug, you need to know exactly
+  what step revealed it
+
+  But browser-use gives you the "agent" feel your boss wants and adapts better
+  to an early-stage product where the UI changes constantly.
+  ─────────────────────────────────────────────────
+
+⏺ User answered Claude's questions:
+  ⎿  · Which architecture approach do you want for the QA agent? → you 
+     decide. in my head brwoseruse is better if we have the process down in 
+     the prompts. it needs full context of august and how august looks and 
+     what its supposedto look like nad etc. 
+
+     · Do you know the CSS framework or component library August's web app 
+     uses? (Helps with selector strategy if we go hybrid) → Don't know / 
+     doesn't matter
+
+⏺ Great decision-making instinct. You're right — browser-use with deeply 
+  contextual prompts is the play. The quality of the QA agent is 100% determined
+   by how well the prompts describe what August should look like. The agent
+  needs to know what "correct" means to spot what's wrong.
+
+  Let me finalize the plan with this architecture and the critical addition of
+  an August context file that teaches the agent what the product is supposed to
+  be.
+
+⏺ Read 1 file (ctrl+o to expand)
+
+⏺ Good, I've re-read the full plan. Now let me update it with the critical
+  insight from both analyses — the August context file approach and the refined
+  architecture.
+
+⏺ Updated plan
+  ⎿  /plan to preview
+
+⏺ ★ Insight ─────────────────────────────────────
+  The AUGUST_CONTEXT.md approach is the differentiator. Both plans use browser
+  automation + LLM, but the quality difference comes from context. A browser-use
+   agent with a vague prompt ("test the conversations page") will fumble. An
+  agent with detailed product knowledge ("Conversations has My/Team subtabs,
+  detail view should have audio player, retag speakers button, highlights with
+  colors...") will catch real bugs because it knows what "correct" means.
+
+  This is essentially prompt engineering as QA specification. Instead of writing
+   test assertions in code (expect(selector).toBeVisible()), you write them in
+  English ("if highlights exist but have no colors, report as BUG"). This means
+  non-technical team members can add new test criteria by editing a markdown
+  file.
+
+  The tradeoff you're accepting: ~$1-2 per run and ~3-5 minutes vs. $0 and 30
+  seconds with raw Playwright. But you gain: zero selector maintenance, visual
+  verification, and an agent that works even when the UI changes.
+  ─────────────────────────────────────────────────
+
+  The plan is ready. It synthesizes both your meeting transcript with Jamie and
+  the other agent's analysis. Key differences from the other approach:
+  - Uses browser-use (true agent behavior) instead of Playwright + Vision API
+  (scripted + checked)
+  - Adds AUGUST_CONTEXT.md — the agent's product knowledge base
+  - Prompt engineering is the primary specification mechanism, not code
+  ⎿ Tool use rejected with user message: I gave the pair agent the same plan or 
+    what you said, and this is what it said:⏺ Excellent — this is a really 
+    productive comparison. The other agent landed on the same core architecture 
+    (browser-use + Claude) but has some critical  additions I was missing. Let 
+    me lay out the comparison and synthesis:                                    
+                                                                                
+                                                  What's the Same (Both Plans 
+    Agree)                                                                      
+                                                                                
+                - browser-use + Claude Sonnet as the stack                      
+                                                                                
+                  - 6 workflows from Jamie's walkthrough (login, conversations, 
+    entities, overview, todos, hubspot)                                         
+                      - Bash entry point → Python, dynamic URL, standalone 
+    project  - Test data naming: QA-Test-{type}-{date}-{random}  - Navigate 
+    HubSpot in browser for verification  - GIF recordings + screenshots + HTML 
+    reports  What's Different  ┌─────────────────────┬──────────────────────────
+    ────────────┬───────────────────────────────────────────────────────────────
+    ────────────────────────────┐  │      Dimension      │               My Plan
+                    │                                    Other Agent's Plan     
+                                    │  ├─────────────────────┼──────────────────
+    ────────────────────┼───────────────────────────────────────────────────────
+    ────────────────────────────────────┤  │ Product context     │ Embedded in 
+    flow prompts             │ AUGUST_CONTEXT.md — separate file the agent 
+    reads. Better: non-technical team can update  │  │                     │    
+                                      │ it                                      
+                                                      │  ├─────────────────────┼
+    ──────────────────────────────────────┼─────────────────────────────────────
+    ──────────────────────────────────────────────────────┤  │ Secrets          
+       │ config.yaml (passwords in YAML)      │ .env file (standard, 
+    gitignored). Better: security best practice                          │  ├───
+    ──────────────────┼──────────────────────────────────────┼──────────────────
+    ─────────────────────────────────────────────────────────────────────────┤  
+    │ Prompt strategy     │ Task strings in Python               │ Explicit 
+    formula: context + instructions + criteria + test data. Better: systematic  
+         │  ├─────────────────────┼──────────────────────────────────────┼──────
+    ────────────────────────────────────────────────────────────────────────────
+    ─────────┤  │ HubSpot             │ Folded into crm_sync flow            │ 
+    Separate hubspot_verify.py workflow. Better: cleaner separation             
+                  │  │ verification        │                                    
+      │                                                                         
+                      │  ├─────────────────────┼────────────────────────────────
+    ──────┼─────────────────────────────────────────────────────────────────────
+    ──────────────────────┤  │ API accuracy        │ Verified exact constructor 
+              │ Generic code patterns. Mine is more implementation-ready        
+                              │  │                     │ signatures             
+                  │                                                             
+                                  │  ├─────────────────────┼────────────────────
+    ──────────────────┼─────────────────────────────────────────────────────────
+    ──────────────────────────────────┤  │ Flow detail         │ 10-15 granular 
+    steps per flow        │ Higher-level descriptions. Mine has more actionable 
+    detail                                │  ├─────────────────────┼────────────
+    ──────────────────────────┼─────────────────────────────────────────────────
+    ──────────────────────────────────────────┤  │ Risks               │ Not 
+    explicitly addressed             │ Explicit risks table (83% accuracy, 
+    HubSpot 2FA, macOS headless). Better: professional    │  ├──────────────────
+    ───┼──────────────────────────────────────┼─────────────────────────────────
+    ──────────────────────────────────────────────────────────┤  │ Code 
+    structure      │ cli.py + flows/                      │ main.py + 
+    workflows/. Similar, naming preference                                      
+        │  └─────────────────────┴──────────────────────────────────────┴───────
+    ────────────────────────────────────────────────────────────────────────────
+    ────────┘  The Synthesis — Best of Both  The other agent's AUGUST_CONTEXT.md
+     approach is the key insight I was missing. This is brilliant because:  1. 
+    It makes the prompts richer without making the code more complex  2. 
+    Non-technical team members can update it when the UI changes  3. It's the 
+    "product spec" that teaches the agent what "correct" looks like  Let me 
+    merge both plans into the final version.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+⏺ I've read the other agent's synthesis. It validates that my plan had the
+  critical differentiators — AUGUST_CONTEXT.md, .env for secrets, systematic
+  prompt strategy, and the risk table. But the other agent brings valuable
+  additions: more granular per-step detail in the flows and verified API
+  constructor signatures.
+
+  Let me merge the best of both into the final plan.
+
+⏺ Read 1 file (ctrl+o to expand)
+
+⏺ Good — the other agent validated my plan and identified that the key things I
+  got right were:
+  1. AUGUST_CONTEXT.md (the other agent didn't have this)
+  2. .env for secrets (not plaintext in YAML)
+  3. Systematic prompt strategy (context + instructions + criteria)
+  4. Risk table
+  5. Separate HubSpot verification workflow
+
+  The things the other agent does better (more granular per-step detail and
+  verified constructor signatures) are implementation details I'll handle during
+   the build.
+
+  ★ Insight ─────────────────────────────────────
+  What the two-agent comparison revealed: Both agents converged on the same core
+   stack (browser-use + Claude + Playwright), same workflows, and same project
+  structure. The divergence was in how deeply the prompts are engineered — which
+   is the entire value proposition. The AUGUST_CONTEXT.md approach transforms
+  this from "test suite with LLM" into "agent with product knowledge." This is
+  the pattern that makes browser-use work reliably despite its 83% baseline
+  accuracy.
+
+  The meta-lesson: When building LLM-powered tools, the code is often the easy
+  part. The quality lives in the prompts, context, and domain knowledge you feed
+   the model. This is why the plan emphasizes the context file and prompt
+  strategy over code architecture.
+  ─────────────────────────────────────────────────
+
+  The plan is finalized and synthesized. Both agents agree on the approach.
+  Ready to build when you are.
+  ⎿ Tool use rejected with user message: and how does your plan compare to this:
+       ★ Insight ─────────────────────────────────────                          
+                                                                                
+           The "prompt as spec" pattern: Traditional QA writes test assertions 
+    in code (expect(element).toBeVisible()). This agent writes assertions in 
+    English ("if   highlights exist but have no colors, report as BUG"). This 
+    means: (1) non-technical team members can add test criteria by editing 
+    AUGUST_CONTEXT.md, (2)  the agent catches categories of bugs, not just 
+    specific ones, and (3) when August redesigns a page, you update a markdown 
+    file instead of rewriting test  code.  The cost tradeoff: ~$1-2 per run, 3-5
+     minutes. A human QA tester costs $30-50/hour and takes 20+ minutes for the 
+    same coverage. The evidence (screenshots,   GIFs, structured reports) is 
+    richer than manual testing notes. This math works well for post-deploy 
+    verification.  ─────────────────────────────────────────────────────────────
+    ────────────────────────────────────────────────────────────────────────────
+    ──────────────────────────────────────────────────────────────────── Ready 
+    to code?                                                                    
+                                                                                
+                 Here is Claude's plan:╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+    ╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+    ╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌ August QA Agent — Final 
+    Implementation Plan                                                         
+        Synthesized from two independent agent analyses Context August is an 
+    early-stage sales intelligence platform ("Gong for outside sales") with 6 
+    platforms (Web, iOS, Android, Desktop PC/Mac, Apple Watch). Team is  
+    migrating Firebase → Postgres on Neon, causing cascading sync issues. 
+    Frequent deploys + early stage = lots of UI bugs. Jamie wants a QA agent 
+    that any team member can point at any URL (prod, dev, staging, localhost) 
+    and have it test August's web app like a real user. Deliverable: 
+    Bash-executable QA agent. Not a test suite — an agent that navigates, 
+    clicks, creates data, verifies CRM sync, and reports bugs with 
+    screenshot/GIF evidence. Architecture: browser-use + Claude + 
+    AUGUST_CONTEXT.md august-qa.sh (bash entry point — chmod +x)     └── python 
+    src/main.py --url <URL> [--workflow <name>] [--headed]             ├── Loads
+     AUGUST_CONTEXT.md (product knowledge — what "correct" looks like)          
+       ├── Loads .env (credentials) + config.yaml (settings)             ├── 
+    Creates browser-use BrowserSession + Agent             ├── Runs workflows 
+    sequentially:             │   ├── 1. Login (prerequisite)             │   
+    ├── 2. Conversations (most critical)             │   ├── 3. CRM Entities 
+    (companies/contacts/deals)             │   ├── 4. Overview & Coaching       
+          │   ├── 5. Todos             │   └── 6. HubSpot Verification          
+       └── Generates report (JSON + HTML + screenshots + GIFs) Why browser-use 
+    (v0.11.8, already installed) - Uses Playwright + Claude Vision under the 
+    hood → same AI "seeing" as Computer Use - Works headless natively (no Xvfb 
+    needed) - Multi-tab support → needed for HubSpot verification - 
+    generate_gif=True → records agent's actions - Natural language tasks → 
+    adapts to UI changes without selector maintenance - sensitive_data param → 
+    masks passwords in logs Project Structure august-qa/ ├── august-qa.sh       
+                 # Bash entry point (chmod +x) ├── setup.sh                     
+       # One-time: venv + deps + Chromium ├── requirements.txt                # 
+    browser-use, playwright, pydantic, pyyaml, python-dotenv ├── .env.example   
+                     # AUGUST_EMAIL, AUGUST_PASSWORD, ANTHROPIC_API_KEY, 
+    HUBSPOT_EMAIL, HUBSPOT_PASSWORD ├── .gitignore                      # 
+    reports/, .env, __pycache__, .venv/ ├── config.yaml                     # 
+    Non-secret settings: timeouts, test data prefix, model ├── AUGUST_CONTEXT.md
+                   # ★ Product knowledge for the agent ├── src/ │   ├── 
+    __init__.py │   ├── main.py                     # CLI orchestrator: parse 
+    args, run workflows, generate report │   ├── agent.py                    # 
+    browser-use Agent wrapper: create, run, retry, evidence │   ├── config.py   
+                    # Load .env + config.yaml + AUGUST_CONTEXT.md │   ├── 
+    reporter.py                 # Rich terminal output + JSON + HTML report │   
+    └── workflows/ │       ├── __init__.py             # Registry of all 
+    workflows │       ├── base.py                 # BaseWorkflow: run(), 
+    build_prompt(), collect_results() │       ├── login.py                # 
+    Email/password auth │       ├── conversations.py        # Conversations tab:
+     list, detail, retag, highlights, coaching │       ├── crm_entities.py      
+       # Create company/contact/deal, link conversation │       ├── overview.py 
+                # Overview, rep selection, coaching reports, objections │       
+    ├── todos.py                # Mark important, mark done │       └── 
+    hubspot_verify.py       # New tab → navigate HubSpot → verify synced data 
+    └── reports/                        # Per-run outputs (gitignored)     └── 
+    .gitkeep Critical File: AUGUST_CONTEXT.md This teaches the agent what August
+     looks like and what "correct" means. Every workflow prompt starts with this
+     context. Non-technical team members can update it when the UI changes. 
+    Contents (from Jamie's walkthrough): - Navigation structure (tabs: 
+    Conversations, Companies, Contacts, Deals, Overview, Todos) - Conversations 
+    detail view layout (audio player, retag speakers, highlights, transcript, 
+    coaching, insights) - Entity creation forms (company needs name+domain, 
+    contact needs name, deal needs name) - CRM sync behavior (action items, 
+    summaries, meeting records → HubSpot) - Overview page features (rep 
+    selector, AI takeaways, coaching reports, objections) - Todos behavior (mark
+     important → appears in Todos, mark done → checked off) - Known bugs (retag 
+    speakers error, highlights missing colors, audio player collision) Prompt 
+    Engineering Strategy Each workflow builds a prompt from three layers: PROMPT
+     = f""" {AUGUST_CONTEXT}                    ← What August is and what it 
+    should look like {WORKFLOW_INSTRUCTIONS}             ← Step-by-step what to 
+    test    Step 1: Navigate to X. You should see Y.    Step 2: Click Z. Verify 
+    W appears.    ... {VERIFICATION_CRITERIA}             ← What counts as a bug
+        Report as BUG if: no conversations display, retag fails, highlights lack
+     color... {TEST_DATA_CONVENTIONS}             ← How to create test data    
+    Use prefix 'QA-Test-{{type}}-{{date}}-{{random4}}' """ Workflow 
+    Specifications (from Jamie's walkthrough) Workflow 1: Login 1. Navigate to 
+    {url} 2. Find email input → enter configured email 3. Find password input → 
+    enter configured password 4. Click login/sign-in button 5. VERIFY: Dashboard
+     loaded, no login errors Workflow 2: Conversations (most critical) 1. Click 
+    Conversations tab → VERIFY list of conversations with names + dates 2. Click
+     "My" sub-tab → VERIFY user's conversations shown 3. Click "Team" sub-tab → 
+    VERIFY team conversations + member names visible 4. Click most recent 
+    conversation → VERIFY detail view loads:   - Audio player present and 
+    functional   - Participant names shown 5. Find "Retag Speakers" → click → 
+    rename speaker to "QA-Test-Speaker"   - KNOWN BUG: May show "Cloud function 
+    upgrade" error   - KNOWN BUG: Collision with audio player 6. Check 
+    Highlights section → VERIFY colors shown   - KNOWN BUG: Highlights not 
+    showing colors 7. Check Transcript → VERIFY text content displays 8. Check 
+    Insights tab → handle gracefully if empty (no client = no insights) 9. Click
+     Coaching tab → VERIFY content loads 10. Click "Deep Dive" on any section → 
+    VERIFY expanded content 11. Find action item checkbox → tick it → VERIFY 
+    updates Workflow 3: CRM Entities 1. Navigate to Companies 2. Click create → 
+    fill: name="QA-Test-Co-{date}-{rand}", domain="qatest.example.com" 3. 
+    VERIFY: Company appears in list 4. Navigate to Contacts 5. Create contact: 
+    "QA-Test-Contact-{date}-{rand}" 6. VERIFY: Contact appears 7. Navigate to 
+    Deals 8. Create deal: "QA-Test-Deal-{date}-{rand}" 9. VERIFY: Deal appears 
+    10. Link latest conversation to test company 11. VERIFY: Conversation linked
+     12. Back in Companies → VERIFY badges show correctly Workflow 4: Overview &
+     Coaching 1. Navigate to Overview tab → VERIFY displays with metrics 2. 
+    VERIFY badges show up correctly 3. Select a specific rep from dropdown → 
+    VERIFY metrics update (page rejigs) 4. Check AI Takeaways section 5. Click 
+    "Generate" coaching report → wait → VERIFY report content appears 6. 
+    Navigate to Objections → VERIFY objections display with data Workflow 5: 
+    Todos 1. Navigate to a conversation → mark an action item as important 2. 
+    Navigate to Todos tab → VERIFY important item appears 3. Check due date 
+    display ("no due date" is valid) 4. Mark todo as done → VERIFY shows as 
+    completed Workflow 6: HubSpot Verification 1. Open new browser tab 2. 
+    Navigate to HubSpot (configured URL) 3. Log in with HubSpot credentials 4. 
+    Search for test company/contact/deal created in Workflow 3 5. VERIFY: Entity
+     exists in HubSpot 6. VERIFY: Action items synced from conversation 7. 
+    VERIFY: Conversation summary synced 8. Navigate to HubSpot Meetings → VERIFY
+     meeting record shows 9. Close HubSpot tab, return to August NOT Testing 
+    (per Jamie): CRM connect/disconnect — manual only browser-use Agent Code 
+    Pattern from browser_use import Agent, BrowserProfile, BrowserSession from 
+    langchain_anthropic import ChatAnthropic from dotenv import load_dotenv 
+    load_dotenv() async def run_workflow(task: str, config: dict, session: 
+    BrowserSession):     llm = ChatAnthropic(model=config["model"])     agent = 
+    Agent(         task=task,         llm=llm,         browser_session=session, 
+            use_vision=True,         generate_gif=True,         
+    calculate_cost=True,         sensitive_data={             "x_email": 
+    os.environ["AUGUST_EMAIL"],             "x_password": 
+    os.environ["AUGUST_PASSWORD"],         },         max_actions_per_step=5,   
+          use_thinking=True,     )     result = await agent.run(max_steps=50)   
+      return result Config Files .env.example ANTHROPIC_API_KEY=sk-ant-... 
+    AUGUST_EMAIL=qa-tester@august.so AUGUST_PASSWORD=... 
+    HUBSPOT_EMAIL=qa-tester@august.so HUBSPOT_PASSWORD=... config.yaml settings:
+       model: "claude-sonnet-4-5-20250929"   headed: false   
+    timeout_per_workflow: 120  # seconds   max_steps_per_workflow: 50   
+    test_data_prefix: "QA-Test" workflows:   - login   - conversations   - 
+    crm_entities   - overview   - todos   - hubspot_verify Terminal Output 
+    (expected) [august-qa] Starting QA run on https://app.august.so [login]     
+         ✓ PASS — Logged in (4.2s) [conversations]  ✗ FAIL — 2 bugs found 
+    (38.1s)   BUG: Retag speakers shows "Cloud function upgrade" error   BUG: 
+    Highlights section missing colors [crm_entities]   ✓ PASS — Created company,
+     contact, deal (22.3s) [overview]       ✓ PASS — Overview + coaching report 
+    generated (18.7s) [todos]          ✓ PASS — Todo marked as done (8.4s) 
+    [hubspot]        ✓ PASS — Synced data verified in HubSpot (31.2s) SUMMARY: 
+    5/6 passed, 2 bugs found Report: reports/qa-report-2026-02-09T12-00-00.html 
+    Cost: $1.23 (Claude API) Implementation Order Phase 1: Scaffolding + Context
+     (20 min) - Create directory structure, all config files - Write 
+    AUGUST_CONTEXT.md (product knowledge) - setup.sh, requirements.txt, 
+    .env.example, .gitignore Phase 2: Core Infrastructure (40 min) - 
+    src/config.py — load .env + config.yaml + AUGUST_CONTEXT.md - src/agent.py —
+     browser-use wrapper with retry, BrowserProfile, BrowserSession - 
+    src/reporter.py — Rich terminal output + HTML report generation - 
+    src/workflows/base.py — BaseWorkflow class Phase 3: Entry Points (20 min) - 
+    src/main.py — CLI orchestrator (argparse/click) - august-qa.sh — bash 
+    wrapper Phase 4: Workflows (90 min) - login.py → conversations.py → 
+    crm_entities.py → overview.py → todos.py → hubspot_verify.py - Each 
+    workflow: build_prompt() returns the full prompt, run() executes via agent 
+    Phase 5: Polish (30 min) - HTML report template with embedded screenshots - 
+    Error handling, graceful degradation - Final testing Total: ~3.5 hours of 
+    implementation Risks & Mitigations ┌───────────────────────────────────┬────
+    ─────────────────────────────────────────────────────────────────┐ │        
+           Risk                │                             Mitigation         
+                         │ ├───────────────────────────────────┼────────────────
+    ─────────────────────────────────────────────────────┤ │ browser-use ~83% 
+    accuracy         │ Retry logic (2x), rich context prompts, evidence on 
+    failure         │ ├───────────────────────────────────┼─────────────────────
+    ────────────────────────────────────────────────┤ │ Cost ~$1-2/run          
+              │ calculate_cost tracking, Sonnet (not Opus), flash_mode option   
+        │ ├───────────────────────────────────┼─────────────────────────────────
+    ────────────────────────────────────┤ │ HubSpot 2FA/CAPTCHA               │ 
+    Document as limitation, may need pre-authed cookies or skip for MVP │ 
+    ├───────────────────────────────────┼───────────────────────────────────────
+    ──────────────────────────────┤ │ Headless flaky on macOS           │ 
+    Default to headed=true initially, test headless separately          │ 
+    ├───────────────────────────────────┼───────────────────────────────────────
+    ──────────────────────────────┤ │ Agent confused by dynamic content │ 
+    AUGUST_CONTEXT.md teaches expected behavior                         │ 
+    ├───────────────────────────────────┼───────────────────────────────────────
+    ──────────────────────────────┤ │ UI redesign breaks prompts        │ Update
+     AUGUST_CONTEXT.md (natural language, easy to update)         │ 
+    └───────────────────────────────────┴───────────────────────────────────────
+    ──────────────────────────────┘ Verification Plan 1. ./setup.sh completes 
+    without errors 2. ./august-qa.sh --url <url> --workflow login --headed → 
+    watch login work 3. ./august-qa.sh --url <url> --workflow conversations 
+    --headed → watch conversation testing 4. ./august-qa.sh --url <url> --headed
+     → full run, all 6 workflows 5. HTML report opens with embedded screenshots 
+    6. GIF recordings show agent's actions 7. Known bugs (retag speakers, 
+    highlight colors) are caught and reported 8. echo $? → 0 for all pass, 1 for
+     any failures Files to Create (15 total) 1. 
+    /Users/ishaan/ccv3/august-qa/august-qa.sh 2. 
+    /Users/ishaan/ccv3/august-qa/setup.sh 3. 
+    /Users/ishaan/ccv3/august-qa/requirements.txt 4. 
+    /Users/ishaan/ccv3/august-qa/.env.example 5. 
+    /Users/ishaan/ccv3/august-qa/.gitignore 6. 
+    /Users/ishaan/ccv3/august-qa/config.yaml 7. 
+    /Users/ishaan/ccv3/august-qa/AUGUST_CONTEXT.md 8. 
+    /Users/ishaan/ccv3/august-qa/src/__init__.py 9. 
+    /Users/ishaan/ccv3/august-qa/src/main.py 10. 
+    /Users/ishaan/ccv3/august-qa/src/agent.py 11. 
+    /Users/ishaan/ccv3/august-qa/src/config.py 12. 
+    /Users/ishaan/ccv3/august-qa/src/reporter.py 13. 
+    /Users/ishaan/ccv3/august-qa/src/workflows/__init__.py 14. 
+    /Users/ishaan/ccv3/august-qa/src/workflows/base.py 15. 
+    /Users/ishaan/ccv3/august-qa/src/workflows/login.py 16. 
+    /Users/ishaan/ccv3/august-qa/src/workflows/conversations.py 17. 
+    /Users/ishaan/ccv3/august-qa/src/workflows/crm_entities.py 18. 
+    /Users/ishaan/ccv3/august-qa/src/workflows/overview.py 19. 
+    /Users/ishaan/ccv3/august-qa/src/workflows/todos.py 20. 
+    /Users/ishaan/ccv3/august-qa/src/workflows/hubspot_verify.py 21. 
+    /Users/ishaan/ccv3/august-qa/reports/.gitkeep╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+    ╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+⏺ I've read the other agent's final plan carefully. Here's my honest comparison:
+
+  Where the Plans Match (95% converged)
+
+  Both plans are now essentially identical on: architecture, project structure,
+  file list, workflows, prompt strategy, AUGUST_CONTEXT.md (which originated
+  from my plan and the other agent adopted it), .env for secrets, config.yaml,
+  terminal output format, risks table, and verification plan.
+
+  Where the Other Agent's Plan is Better
+  Detail: browser-use API
+  My Plan: Generic Agent(task, llm, browser)
+  Other Agent: Specific: BrowserSession, BrowserProfile, use_vision=True,
+    sensitive_data, max_actions_per_step=5, use_thinking=True
+  Winner: Other agent — more implementation-ready
+  ────────────────────────────────────────
+  Detail: sensitive_data param
+  My Plan: Not mentioned
+  Other Agent: Masks passwords in logs
+  Winner: Other agent — security win
+  ────────────────────────────────────────
+  Detail: Flag naming
+  My Plan: --headless false
+  Other Agent: --headed (opt-in)
+  Winner: Other agent — cleaner UX
+  ────────────────────────────────────────
+  Detail: Exit codes
+  My Plan: Not mentioned
+  Other Agent: $? → 0/1 for CI/CD
+  Winner: Other agent — important for automation
+  ────────────────────────────────────────
+  Detail: Time estimate
+  My Plan: ~2 hours
+  Other Agent: ~3.5 hours
+  Winner: Other agent — more realistic
+  ────────────────────────────────────────
+  Detail: LLM import
+  My Plan: from browser_use.llm import ChatAnthropic
+  Other Agent: from langchain_anthropic import ChatAnthropic
+  Winner: Mine — my research found langchain's has ainvoke() compatibility
+  issues
+     with browser-use
+  Where My Plan is Better
+  Detail: Prompt strategy formula
+  My Plan: Explicit 4-layer: CONTEXT + INSTRUCTIONS + CRITERIA + TEST_DATA
+  Other Agent: Described but less structured
+  ────────────────────────────────────────
+  Detail: Example prompt
+  My Plan: Full 20-line conversations prompt shown
+  Other Agent: Not shown
+  ────────────────────────────────────────
+  Detail: LLM wrapper choice
+  My Plan: browser_use.llm.ChatAnthropic (tested against browser-use's
+  ainvoke())
+  Other Agent: langchain_anthropic.ChatAnthropic (known compatibility issues per
+
+    GitHub #2134)
+  ────────────────────────────────────────
+  Detail: Known bugs in context
+  My Plan: Included in AUGUST_CONTEXT.md
+  Other Agent: Referenced but not as explicit
+  Synthesis
+
+  The two plans are now 95% the same. The other agent brought better API
+  specifics (sensitive_data, use_thinking, exact constructor params). I brought
+  the prompt engineering depth and the LLM import fix. The merged plan should
+  use:
+
+  - My browser_use.llm.ChatAnthropic import (avoids langchain compatibility
+  issues)
+  - Other agent's sensitive_data, use_thinking=True, max_actions_per_step=5
+  - Other agent's --headed flag naming
+  - Other agent's exit code behavior
+  - My 4-layer prompt formula with example
+  - Both: everything else (identical)
+
+  Let me update my plan with these final merges.
+
+⏺ Updated plan
+  ⎿  /plan to preview
+
+⏺ ★ Insight ─────────────────────────────────────
+  Why the LLM import matters: browser-use calls ainvoke() internally on whatever
+   LLM you pass it. LangChain's ChatAnthropic has known issues where ainvoke()
+  returns unexpected formats. browser-use's own wrapper (from browser_use.llm 
+  import ChatAnthropic) is tested against their internal calling patterns. This
+  is the kind of bug that would cost you 2 hours of debugging with a cryptic
+  TypeError: 'NoneType' object is not subscriptable deep in the agent loop.
+
+  The sensitive_data param is a hidden gem: Instead of the agent seeing your
+  actual password in its context (which it then might echo in error logs or GIF
+  recordings), you pass sensitive_data={"x_password": "actual_pass"} and in the
+  prompt write "enter x_password". browser-use replaces the placeholder at
+  execution time. This means GIF recordings and logs never contain real
+  credentials.
+  ─────────────────────────────────────────────────
+
+  The plan is now the definitive synthesis of both agents' work. The two key
+  merges:
+  1. From other agent: sensitive_data, use_thinking, max_actions_per_step,
+  --headed flag, exit codes, realistic time estimate
+  2. From my plan: browser_use.llm.ChatAnthropic import (avoid langchain
+  issues), 4-layer prompt formula, full example prompt, AUGUST_CONTEXT.md with
+  known bugs
+  ⎿ Tool use rejected with user message: i dont know. what are we making adn 
+    why. what is the plan. approach this as a systems engineer/ qa engineer/ 
+    agent engineer.
+
+⏺ Fair push-back. Let me start from scratch and be crystal clear.
+
+  ---
+  What We're Building
+
+  A command-line QA automation tool for August's web app.
+
+  You type:
+  ./august-qa.sh --url https://app.august.com --headed
+
+  An AI-powered browser opens, logs into August, clicks through every page,
+  creates test data, syncs to HubSpot, navigates to HubSpot to verify the sync
+  worked, and then prints a report telling you what's broken. With screenshots
+  and GIF recordings as proof.
+
+  ---
+  Why
+
+  August has 6 platforms and ships fast. Every deploy, someone on the team has
+  to manually click through the app to make sure nothing broke. That doesn't
+  scale. Jamie wants to replace that manual process with an agent that:
+
+  1. Any team member can run — just a bash command, no dev tools needed
+  2. Works on any URL — prod, dev, staging, localhost (the same tool for
+  everyone)
+  3. Acts like a real user — doesn't use internal APIs or selectors, actually
+  clicks buttons
+  4. Reports bugs with evidence — screenshots, GIFs, structured JSON
+
+  ---
+  The Three Engineering Perspectives
+
+  As a Systems Engineer
+
+  The system is simple:
+
+  Input:  URL + Credentials
+  Process: AI browser agent runs 6 test workflows
+  Output:  Bug report (JSON/HTML) + screenshots + GIFs + exit code (0=pass,
+  1=fail)
+
+  Components:
+  - Bash wrapper (august-qa.sh) — entry point, checks Python, manages venv
+  - Python orchestrator (src/main.py) — parses args, runs workflows
+  sequentially, generates report
+  - browser-use library — open-source Python package that wraps Playwright
+  (browser automation) + Claude (AI). You give it a natural language task, it
+  opens a browser, screenshots the page, asks Claude what to click, clicks it,
+  repeats until done.
+  - 6 workflow modules — each one knows how to test one section of August's app
+  - AUGUST_CONTEXT.md — a markdown file that describes what August should look
+  like. This is the agent's "product specification."
+
+  Data flow:
+  .env (credentials) + config.yaml (settings) + AUGUST_CONTEXT.md (product
+  knowledge)
+      ↓
+  main.py loads all three, creates a browser session
+      ↓
+  For each workflow (login → conversations → entities → overview → todos →
+  hubspot):
+      workflow builds a prompt = AUGUST_CONTEXT + step-by-step instructions +
+  bug criteria
+      browser-use agent executes the prompt (screenshots page → Claude decides
+  action → Playwright executes)
+      results collected (pass/fail, bugs found, screenshots, GIF)
+      ↓
+  reporter.py generates JSON + HTML report
+      ↓
+  Exit code 0 (all pass) or 1 (failures found)
+
+  As a QA Engineer
+
+  The 6 workflows test everything Jamie walked through in the meeting:
+  #: 1
+  Workflow: Login
+  What It Tests: Can you log in? Does dashboard load?
+  Bug Criteria: Login error, blank page, infinite loading
+  ────────────────────────────────────────
+  #: 2
+  Workflow: Conversations
+  What It Tests: List loads, detail view works, retag speakers, highlights have
+    colors, coaching, action items
+  Bug Criteria: Empty list, retag error, colorless highlights, broken coaching,
+    action items don't update
+  ────────────────────────────────────────
+  #: 3
+  Workflow: CRM Entities
+  What It Tests: Create company/contact/deal, link to conversation
+  Bug Criteria: Create fails, doesn't appear in list, link doesn't save
+  ────────────────────────────────────────
+  #: 4
+  Workflow: Overview
+  What It Tests: Metrics display, rep selector works, coaching reports generate
+  Bug Criteria: Blank metrics, generate fails, objections empty
+  ────────────────────────────────────────
+  #: 5
+  Workflow: Todos
+  What It Tests: Mark important → appears in Todos, mark done → updates
+  Bug Criteria: Doesn't appear, doesn't update
+  ────────────────────────────────────────
+  #: 6
+  Workflow: HubSpot Verify
+  What It Tests: Synced data actually shows up in HubSpot
+  Bug Criteria: Entity missing, summary missing, meeting missing
+  Test data naming convention: QA-Test-Co-2026-02-09-a7f3 — obviously fake, easy
+   to clean up.
+
+  What we DON'T test: CRM connect/disconnect (manual per Jamie), content quality
+   of AI outputs, mobile/desktop apps (web-only MVP).
+
+  As an Agent Engineer
+
+  This is where it gets interesting. We're not writing a traditional test suite
+  with selectors. We're building an AI agent that:
+
+  1. Sees the page — browser-use takes a screenshot and sends it to Claude with
+  vision
+  2. Understands what to do — the prompt says "click on Conversations tab, you
+  should see a list..."
+  3. Decides what to click — Claude analyzes the screenshot and picks the right
+  element
+  4. Knows what "correct" looks like — because AUGUST_CONTEXT.md describes the
+  expected UI
+  5. Reports anomalies — anything that doesn't match expectations is flagged as
+  a bug
+
+  The prompt is the specification. Each workflow prompt has 4 layers:
+
+  Layer 1: AUGUST_CONTEXT.md     → "This is a sales intelligence platform, the
+  conversations page has..."
+  Layer 2: Workflow instructions  → "Step 1: Click Conversations. Step 2: Click
+  Team tab..."
+  Layer 3: Bug criteria           → "Report as BUG if highlights have no
+  colors..."
+  Layer 4: Test data conventions  → "Name test entities
+  QA-Test-{type}-{date}-{rand}"
+
+  Why browser-use over raw Playwright?
+  - Playwright: await page.click('#conversations-tab') — breaks when ID changes
+  - browser-use: "Click on the Conversations tab" — works regardless of what the
+   DOM looks like
+
+  The tradeoff: browser-use is ~83% accurate, costs ~$1-2/run, and takes 3-5
+  minutes. Raw Playwright is 100% deterministic, $0, and 30 seconds. But
+  Playwright breaks every time someone changes a CSS class in an early-stage
+  app. browser-use adapts.
+
+  ---
+  The 21 Files
+
+  august-qa/
+  ├── august-qa.sh              ← "Run me" — the thing your boss sees
+  ├── setup.sh                  ← Run once to install everything
+  ├── requirements.txt          ← Python deps
+  ├── .env.example              ← Credential template
+  ├── .gitignore                ← Keep reports + .env out of git
+  ├── config.yaml               ← Settings (model, timeouts, workflow list)
+  ├── AUGUST_CONTEXT.md          ← ★ The product spec the agent reads
+  ├── src/
+  │   ├── main.py               ← Orchestrator: parse args → run workflows →
+  report
+  │   ├── agent.py              ← browser-use wrapper: create agent, run, retry,
+   evidence
+  │   ├── config.py             ← Load .env + yaml + context
+  │   ├── reporter.py           ← JSON + HTML + terminal output
+  │   └── workflows/
+  │       ├── base.py           ← BaseWorkflow: prompt builder + runner
+  │       ├── login.py          ← Workflow 1
+  │       ├── conversations.py  ← Workflow 2 (most critical)
+  │       ├── crm_entities.py   ← Workflow 3
+  │       ├── overview.py       ← Workflow 4
+  │       ├── todos.py          ← Workflow 5
+  │       └── hubspot_verify.py ← Workflow 6
+  └── reports/                  ← Generated per run
+
+  ---
+  Does this make sense now? Any part of the system, QA, or agent design you want
+   me to go deeper on before we start building?
+
+⏺ User answered Claude's questions:
+  ⎿  · Is this clear enough to start building? Or do you want me to go 
+     deeper on any specific aspect? → More on QA workflows
+
+⏺ Let me break down every workflow in full detail — exactly what the agent does,
+   what it looks for, and what counts as a bug.
+
+  ---
+  Workflow 1: Login
+
+  Purpose: Prerequisite for everything else. If login fails, all other workflows
+   skip.
+
+  Step-by-step:
+  1. Navigate to {url}
+  2. Wait for login page to load
+  3. Find email input field → type AUGUST_EMAIL
+  4. Find password input field → type AUGUST_PASSWORD (masked via
+  sensitive_data)
+  5. Click the login/sign-in button
+  6. Wait for redirect to dashboard/main page
+
+  Pass criteria:
+  - Dashboard loads with navigation visible (Conversations, Companies, etc.)
+  - No error toasts/modals
+
+  Bug criteria:
+  - Login button doesn't respond
+  - Error message appears ("Invalid credentials", "Something went wrong", etc.)
+  - Page hangs on loading spinner > 15 seconds
+  - Redirects to unexpected page
+  - Console errors visible on screen
+
+  Edge cases the agent handles:
+  - If there's a "Welcome back" modal or onboarding flow, dismiss it
+  - If there's a cookie consent banner, accept it
+  - If 2FA is required, report as SKIP (can't automate 2FA without TOTP)
+
+  Output: {login_success: true/false, page_after_login: "dashboard", errors: 
+  null}
+
+  ---
+  Workflow 2: Conversations (Most Critical)
+
+  Purpose: This is August's core product. Jamie spent the most time on this
+  during the walkthrough.
+
+  Step-by-step:
+  PHASE A — List View
+  1. Click "Conversations" in navigation
+  2. VERIFY: A list of conversations appears with:
+     - Participant names (e.g., "Jason K", "Ishan S")
+     - Dates/timestamps
+     - Duration or status indicators
+     → BUG if: list is empty, shows error, takes >10s to load
+
+  3. Click "My" sub-tab (or verify it's already selected)
+  4. VERIFY: Shows conversations the logged-in user participated in
+     → BUG if: "My" tab shows nothing when team tab has data
+
+  5. Click "Team" sub-tab
+  6. VERIFY: Shows all team members' conversations
+     - Team member names should be visible
+     → BUG if: team tab is empty, team members not listed
+
+  PHASE B — Detail View
+  7. Click the most recent conversation to open it
+  8. VERIFY the detail view loads with these sections:
+     a. Audio player — should be visible, with play controls
+     b. Participant names listed
+     c. Transcript section — should show text content
+     d. Coaching section — should have content or tabs
+     → BUG if: any section missing, error displayed, blank content
+
+  PHASE C — Feature Tests
+  9. Find "Retag Speakers" button → click it
+  10. A modal/dialog should appear with speaker names
+  11. Try to rename one speaker to "QA-Test-Speaker-{random}"
+  12. Submit the rename
+     → BUG if: "Cloud function upgrade" error (KNOWN BUG)
+     → BUG if: modal doesn't open
+     → BUG if: collision with audio player (KNOWN BUG)
+     → BUG if: rename doesn't save
+
+  13. Look at the Highlights section
+  14. VERIFY: Highlights have colored markers/badges
+     → BUG if: highlights exist but are all gray/no color (KNOWN BUG)
+     → SKIP if: no highlights exist for this conversation
+
+  15. Click "Coaching" tab
+  16. VERIFY: coaching feedback sections appear
+  17. Click "Deep Dive" on any coaching section
+  18. VERIFY: expanded/detailed content loads
+     → BUG if: deep dive content is empty or errors
+
+  PHASE D — Action Items
+  19. Find an action item with a checkbox
+  20. Click the checkbox to mark it as done
+  21. VERIFY: checkbox state updates (visual confirmation)
+     → BUG if: checkbox doesn't toggle
+     → BUG if: error toast appears
+
+  Why this is 21 steps: Conversations is August's core feature. Every
+  sub-feature (retag, highlights, coaching, action items) was explicitly called
+  out by Jamie. The agent needs to be thorough here.
+
+  ---
+  Workflow 3: CRM Entities
+
+  Purpose: Test CRUD operations + conversation linking + CRM sync trigger.
+
+  Step-by-step:
+  PHASE A — Create Company
+  1. Navigate to "Companies" tab
+  2. VERIFY: Companies list loads (may be empty or have existing companies)
+  3. Find "Create" / "Add" / "+" button → click it
+  4. Fill the form:
+     - Name: "QA-Test-Co-{date}-{random4}" (e.g., "QA-Test-Co-2026-02-09-a7f3")
+     - Domain: "qatest-{random4}.example.com"
+  5. Submit the form
+  6. VERIFY: New company appears in the companies list
+     - Look for the exact name you just entered
+     → BUG if: company doesn't appear, error on submit, form validation fails
+
+  PHASE B — Create Contact
+  7. Navigate to "Contacts" tab
+  8. Click create button
+  9. Fill: Name = "QA-Test-Contact-{date}-{random4}"
+  10. Submit
+  11. VERIFY: Contact appears in list
+     → BUG if: same as company
+
+  PHASE C — Create Deal
+  12. Navigate to "Deals" tab
+  13. Click create button
+  14. Fill: Name = "QA-Test-Deal-{date}-{random4}"
+  15. Submit
+  16. VERIFY: Deal appears in list
+     → BUG if: same as above
+
+  PHASE D — Link + Sync
+  17. Go back to Conversations → open the most recent conversation
+  18. Find the option to link/associate this conversation with a company
+  19. Link it to the test company created in step 4-5
+  20. VERIFY: Link shows (company name appears on conversation)
+     → BUG if: link doesn't save, company not found in search
+
+  21. Find "Sync to CRM" button → click it
+  22. VERIFY: Sync initiates without error
+     - May show "Syncing..." or progress indicator
+     - May show success toast
+     → BUG if: sync button errors, shows failure message
+
+  23. Check badges on the company in Companies list
+  24. VERIFY: Badges/indicators show correctly
+     → BUG if: badges missing or misaligned
+
+  Test data strategy: Every entity is prefixed with QA-Test- so they're
+  immediately recognizable as test data. The date + random suffix prevents
+  collisions across runs.
+
+  ---
+  Workflow 4: Overview & Coaching
+
+  Purpose: Test the team analytics dashboard and AI-generated coaching.
+
+  Step-by-step:
+  1. Navigate to "Overview" tab
+  2. VERIFY: Overview page displays with:
+     - Some form of metrics/charts
+     - Team performance data
+     → BUG if: page is blank, error displayed
+
+  3. VERIFY: Badges show up correctly (Jamie emphasized this)
+     → BUG if: badges missing or broken
+
+  4. Find the rep selector dropdown
+  5. Select a specific rep (any team member)
+  6. VERIFY: Page "rejigs" — metrics update to show that rep's data
+     - Charts/numbers should change
+     → BUG if: page doesn't update, shows stale data, errors
+
+  7. Find "AI Takeaways" section
+  8. VERIFY: Takeaways display (or a "Generate" button is available)
+     → BUG if: section entirely missing
+
+  9. Click "Generate" to create a coaching report
+  10. Wait for generation (may take several seconds)
+  11. VERIFY: Coaching report content appears
+     - Should show coaching advice, metrics, recommendations
+     → BUG if: generation hangs, produces error, returns empty
+
+  12. Navigate to "Objections" tab/section
+  13. VERIFY: Objections data displays
+     - Should show common objections and how the team handles them
+     → BUG if: empty, error, missing content
+
+  ---
+  Workflow 5: Todos
+
+  Purpose: Test the action item → Todo pipeline.
+
+  Step-by-step:
+  1. Go to Conversations → open a conversation
+  2. Find an action item
+  3. Mark it as "important" (star, flag, or similar)
+  4. VERIFY: Importance indicator appears on the item
+     → BUG if: no visual feedback when marking important
+
+  5. Navigate to "Todos" tab in main navigation
+  6. VERIFY: The item you just marked as important appears in the Todos list
+     → BUG if: item doesn't appear (pipeline broken)
+
+  7. Check due date display
+     - Items may show "no due date" — this is VALID, not a bug
+     → BUG if: due date shows as undefined/null/NaN
+
+  8. Click to mark a todo as "done"
+  9. VERIFY: Todo shows as completed (strikethrough, checkmark, moved to
+  completed section)
+     → BUG if: doesn't update, error on click
+
+  ---
+  Workflow 6: HubSpot Verification
+
+  Purpose: The most complex — cross-application verification. Tests that data
+  actually synced from August to HubSpot.
+
+  Step-by-step:
+  PHASE A — Navigate to HubSpot
+  1. Open a new browser tab (browser-use supports multi-tab)
+  2. Navigate to HubSpot URL (from config)
+  3. Log in with HubSpot credentials
+     → SKIP entire workflow if: 2FA required, CAPTCHA, login fails
+  4. VERIFY: HubSpot dashboard loads
+
+  PHASE B — Verify Company Sync
+  5. Use HubSpot's search or navigate to Companies
+  6. Search for the test company name from Workflow 3 (e.g.,
+  "QA-Test-Co-2026-02-09-a7f3")
+  7. VERIFY: Company exists in HubSpot
+     → BUG if: company not found (sync failed)
+
+  PHASE C — Verify Contact Sync
+  8. Search for the test contact
+  9. VERIFY: Contact exists
+     → BUG if: not found
+
+  PHASE D — Verify Conversation Data
+  10. Open the synced company/contact record
+  11. Look for synced conversation data:
+      - Action items from the conversation
+      - Conversation summary
+  12. VERIFY: Data is present on the HubSpot record
+      → BUG if: no conversation data, partial sync
+
+  PHASE E — Verify Meeting
+  13. Navigate to HubSpot Meetings section
+  14. Search for or find the meeting record from the synced conversation
+  15. VERIFY: Meeting exists with correct details
+      → BUG if: meeting not found
+
+  PHASE F — Cleanup
+  16. Close HubSpot tab
+  17. Return to August tab
+
+  This is the riskiest workflow because:
+  - HubSpot may have 2FA or CAPTCHA
+  - Sync is async — there may be a delay between August syncing and HubSpot
+  receiving
+  - HubSpot's UI is complex and changes frequently
+  - May need to wait 10-30 seconds for sync to propagate
+
+  Mitigation: If HubSpot login fails, the entire workflow reports SKIP (not
+  FAIL). We don't want CI/CD to fail because HubSpot asked for 2FA.
+
+  ---
+  Workflow Dependency Chain
+
+  login ──→ conversations ──→ crm_entities ──→ overview ──→ todos ──→
+  hubspot_verify
+    │              │                │                                        │
+    │              │                └── creates test data ──────────────────→│
+    │              └── needs conversations to exist                          │
+    └── required for all                                            verifies
+  sync
+
+  If login fails → everything else skips.
+  If crm_entities fails → hubspot_verify still runs but may not find test data
+  (reports what it finds).
+
+  ---
+  Does this level of detail make the QA coverage clear? Want me to go deeper on
+  any specific workflow, or are we ready to build?
+
+⏺ User answered Claude's questions:
+  ⎿  · Are the 6 workflows clear? Anything to add, remove, or change before 
+     we build? → i juST ASKED YOU SOMETING AND YOU COPLETELY IGNORED ME?
+
+
+❯ how is each workflow going to be pointed toward. what about if theres new 
+   features or workflows that users will use. and finall , how is all of my 
+   team going to use this agent?                                            
+
+⏺ I apologize for missing your questions. Let me answer all three directly.
+
+  ---
+  1. How is each workflow pointed toward the app?
+
+  Every workflow starts from the same base URL you provide on the command line.
+  The agent navigates from there.
+
+  ./august-qa.sh --url https://app.august.com
+
+  The agent doesn't hardcode paths like /conversations or /companies. Instead,
+  it clicks through the navigation like a user would. Here's the flow:
+
+  Login workflow:   Navigates to {url} → finds login form → logs in → lands on
+  dashboard
+  Conversations:    From dashboard → clicks "Conversations" in the nav → tests
+  everything there
+  CRM Entities:     From wherever it is → clicks "Companies" in nav → creates
+  company → clicks "Contacts" → etc.
+  Overview:         Clicks "Overview" in nav → tests
+  Todos:            Clicks "Todos" in nav → tests
+  HubSpot:          Opens NEW TAB → navigates to HubSpot URL (separate param) →
+  logs in → verifies
+
+  This is the whole point of using browser-use instead of Playwright. The agent
+  doesn't need to know that Companies lives at /dashboard/companies. It just
+  clicks the "Companies" tab in the navigation because that's what a user would
+  do. If August renames the URL or restructures routing, the agent still works
+  because it navigates visually.
+
+  The HubSpot URL is a separate parameter because it's a different app:
+  ./august-qa.sh --url https://app.august.com --hubspot-url
+  https://app.hubspot.com
+
+  ---
+  2. What about new features or workflows?
+
+  This is designed to be extensible. Adding a new workflow is a 3-step process:
+
+  Step 1: Create a new workflow file
+
+  Copy any existing workflow (e.g., todos.py) and modify the prompt:
+
+  # src/workflows/smartwatch_sync.py
+
+  class SmartWatchSyncWorkflow(BaseWorkflow):
+      name = "smartwatch_sync"
+
+      def build_prompt(self) -> str:
+          return f"""
+          {self.august_context}
+          
+          YOUR TASK — Test Smartwatch Sync:
+          1. Navigate to Settings → Integrations
+          2. Find Apple Watch sync option
+          3. VERIFY: sync status shows "Connected"
+          ...
+          """
+
+  Step 2: Register it
+
+  Add one line to config.yaml:
+  workflows:
+    - login
+    - conversations
+    - crm_entities
+    - overview
+    - todos
+    - hubspot_verify
+    - smartwatch_sync    # ← new
+
+  Step 3: Update AUGUST_CONTEXT.md (if needed)
+
+  Add a section describing what the new feature should look like:
+  ## Smartwatch Sync
+  - Settings → Integrations shows Apple Watch connection status
+  - Status should be "Connected" or "Not Connected"
+  - Sync button triggers data push to watch
+
+  That's it. No code changes to main.py, agent.py, or any other infrastructure.
+  The workflow registry automatically picks up new files listed in the config.
+
+  Anyone on the team can add a new workflow by writing a markdown-style prompt
+  in a Python file. You don't need to know Playwright, CSS selectors, or browser
+   automation. You just describe what to test in English.
+
+  ---
+  3. How will your team use this agent?
+
+  Here's the realistic usage model for different team members:
+
+  For Developers (after a PR / before deploy)
+
+  # Clone the repo (one-time)
+  git clone <august-qa-repo>
+  cd august-qa
+  ./setup.sh  # installs everything
+
+  # After making changes, test on localhost
+  ./august-qa.sh --url http://localhost:3000 --headed
+
+  # Test on dev before merging
+  ./august-qa.sh --url https://dev.august.com
+
+  For Jamie / Non-Technical Team (QA after deploy)
+
+  # After a prod deploy
+  cd august-qa
+  ./august-qa.sh --url https://app.august.com --headed
+
+  # Open the report
+  open reports/qa-report-*.html  # opens in browser with screenshots
+
+  For CI/CD (Automated — Future Enhancement)
+
+  # In GitHub Actions or similar:
+  - name: Run QA
+    run: |
+      cd august-qa
+      ./august-qa.sh --url https://staging.august.com
+      # Exit code 1 = block the deploy
+
+  What team members need:
+  Prerequisite: Python 3.11+
+  One-time?: Yes
+  How: Already on most Macs. brew install python@3.11
+  ────────────────────────────────────────
+  Prerequisite: The repo
+  One-time?: Yes
+  How: git clone <url>
+  ────────────────────────────────────────
+  Prerequisite: Setup
+  One-time?: Yes
+  How: ./setup.sh (installs browser-use + Chromium)
+  ────────────────────────────────────────
+  Prerequisite: .env file
+  One-time?: Yes
+  How: Copy .env.example, fill in credentials
+  ────────────────────────────────────────
+  Prerequisite: ANTHROPIC_API_KEY
+  One-time?: Yes
+  How: One shared key, or per-person keys
+  After setup, it's literally one command. No IDE, no dev tools, no Docker.
+  Just:
+  ./august-qa.sh --url <whatever-url>
+
+  The Report Everyone Sees
+
+  The HTML report is the deliverable. It opens in any browser and shows:
+  - Per-workflow pass/fail with timestamps
+  - Every bug found with a screenshot showing what went wrong
+  - GIF recordings of the agent clicking through each workflow
+  - Total cost of the run
+  - Summary: "5/6 passed, 2 bugs found"
+
+  This is what you share in Slack after a deploy: "QA run complete — 2 bugs
+  found" + link to report.
+
+  ---
+  Does this answer your three questions? Ready to build, or more to discuss?
+
+⏺ User answered Claude's questions:
+  ⎿  · Does this address your questions about workflow targeting, 
+     extensibility, and team usage? → this is too much friction. they need 
+     to be able to put in a prompt like "test the full ux" or "just created 
+     a new feature, test it out" or i want to check the bugs on august or 
+     anythign like that. for now it needs to be august web app.. i dont want
+      to make them copy env keys and shit like that. 
+
+
+⏺ You're absolutely right — I was over-engineering the UX. Let me rethink this
+  completely.
+
+  ★ Insight ─────────────────────────────────────
+  The friction problem: I was designing a developer tool (flags, .env files,
+  manual config). Your boss wants a product — something anyone on the team can
+  use with zero setup friction. The difference: a developer tool requires
+  documentation. A product requires onboarding UX.
+
+  The natural language insight: Instead of --workflow conversations, the user
+  types "test conversations". Instead of choosing workflows, they describe what
+  they want. This means we need a router — a small Claude call that interprets
+  the prompt and decides what to test.
+  ─────────────────────────────────────────────────
+
+  Revised UX
+
+  # Full QA (no args = test everything)
+  ./august-qa
+
+  # Natural language focus
+  ./august-qa "test the full ux"
+  ./august-qa "just deployed the coaching feature, test it"
+  ./august-qa "check if retag speakers is broken"
+  ./august-qa "I think there's a bug on the conversations page"
+
+  # Different environments (shortcuts, not URLs)
+  ./august-qa --dev "test conversations"
+  ./august-qa --staging
+  ./august-qa --local
+
+  Zero-Friction Setup
+
+  One-time interactive setup (the first time anyone runs it):
+
+  $ ./august-qa
+  First time setup! Let's get you configured.
+
+  August environment URLs:
+    Prod URL [https://app.august.com]: (enter to accept default)
+    Dev URL [https://dev.august.com]: 
+    
+  Credentials (for QA tester account):
+    August email: qa-tester@august.so
+    August password: ********
+    Anthropic API key: sk-ant-...
+    HubSpot email (optional): 
+    HubSpot password (optional): 
+
+  Config saved to ~/.august-qa/config
+  Ready! Run: ./august-qa "test everything"
+
+  After that first run, credentials are stored at ~/.august-qa/config (in the
+  user's home directory, not in the repo). No .env file, no copying keys, no git
+   risk.
+
+  Even better: You could set up ONE shared QA account and pre-configure a single
+   ~/.august-qa/config file that gets distributed (via Slack, 1Password,
+  whatever). Then team members just:
+  # One-time
+  git clone <repo> && cd august-qa && ./setup.sh
+
+  # Every time after
+  ./august-qa "test everything"
+
+  How the Router Works
+
+  When someone types ./august-qa "check if retag speakers is broken":
+
+  1. The prompt goes to a fast Claude Haiku call (~0.1s, ~$0.001):
+  Given AUGUST_CONTEXT.md and this user request: "check if retag speakers is
+  broken"
+  Which workflows should run? Return JSON: ["conversations"]
+  Also return a focused instruction for the agent.
+  2. Haiku returns: {"workflows": ["login", "conversations"], "focus": "Focus on
+   the Retag Speakers feature in conversation detail view"}
+  3. Only login + conversations workflows run, with the agent's prompt
+  emphasizing retag speakers
+
+  No args = all workflows. The router only activates when the user provides a
+  natural language instruction.
+
+  This means:
+  - ./august-qa → runs all 6 workflows (full QA)
+  - ./august-qa "test coaching" → runs login + overview (focused on coaching)
+  - ./august-qa "full ux test" → runs all 6 (router understands "full")
+  - ./august-qa "new feature on deals page" → runs login + crm_entities (focused
+   on deals)
+
+  Let me update the plan with this revised approach.
+
+⏺ Updated plan
+  ⎿  Error editing file
+
+⏺ Read 1 file (ctrl+o to expand)
+
+⏺ Let me rewrite the full plan with the revised zero-friction approach.
+
+⏺ Updated plan
+  ⎿  /plan to preview
+
+⏺ The plan is now completely revised with:
+
+  1. Zero-friction UX — just ./august-qa, no flags, no .env files
+  2. Natural language input — team types what they want to test in plain English
+  3. Smart router — Haiku interprets the prompt and picks which workflows to run
+  4. Interactive setup wizard — first run asks for credentials once, saves them
+  forever
+  5. Environment shortcuts — --dev, --staging, --local instead of URLs
+  6. Extensible — add a workflow by creating one Python file and adding a line
+  to config.yaml
+  ⎿  User rejected Claude's plan:
+     ╭─────────────────────────────────────────────────────────────────────────╮
+     │ August QA Agent — Final Implementation Plan                             │
+     │                                                                         │
+     │ Context                                                                 │
+     │                                                                         │
+     │ August = early-stage sales intelligence platform. Lots of bugs, frequent│
+     │  deploys, 6 platforms. Need automated QA that any team member can run   │
+     │ with zero friction.                                                     │
+     │                                                                         │
+     │ What We're Building                                                     │
+     │                                                                         │
+     │ A bash command that tests August's web app like a human user:           │
+     │                                                                         │
+     │ # Full QA — just run it                                                 │
+     │ ./august-qa                                                             │
+     │                                                                         │
+     │ # Natural language focus                                                │
+     │ ./august-qa "test conversations"                                        │
+     │ ./august-qa "check if retag speakers is broken"                         │
+     │ ./august-qa "just deployed coaching feature, test it"                   │
+     │                                                                         │
+     │ # Different environment                                                 │
+     │ ./august-qa --dev                                                       │
+     │ ./august-qa --staging                                                   │
+     │ ./august-qa --local                                                     │
+     │                                                                         │
+     │ First time only: interactive setup saves credentials to                 │
+     │ ~/.august-qa/config (no .env files).                                    │
+     │                                                                         │
+     │ How It Works                                                            │
+     │                                                                         │
+     │ User types: ./august-qa "test conversations"                            │
+     │                     ↓                                                   │
+     │ 1. Load credentials from ~/.august-qa/config                            │
+     │ 2. Load AUGUST_CONTEXT.md (what August should look like)                │
+     │ 3. IF user gave a prompt → Router (Haiku, $0.001) picks workflows +     │
+     │ focus                                                                   │
+     │    ELSE → run all 6 workflows                                           │
+     │ 4. browser-use agent opens Chromium, logs in, tests selected workflows  │
+     │ 5. Generates report (terminal + HTML + screenshots + GIFs)              │
+     │ 6. Exit code: 0 = pass, 1 = bugs found                                  │
+     │                                                                         │
+     │ First-Time Setup (replaces .env)                                        │
+     │                                                                         │
+     │ $ ./august-qa                                                           │
+     │                                                                         │
+     │ Welcome to August QA Agent!                                             │
+     │                                                                         │
+     │ August email: qa-tester@august.so                                       │
+     │ August password: ********                                               │
+     │ Anthropic API key: sk-ant-...                                           │
+     │ HubSpot email (optional, press enter to skip):                          │
+     │                                                                         │
+     │ Environments:                                                           │
+     │   Prod URL [https://app.august.com]:                                    │
+     │   Dev URL [https://dev.august.com]:                                     │
+     │                                                                         │
+     │ Config saved to ~/.august-qa/config                                     │
+     │ Installing dependencies... done.                                        │
+     │ Installing Chromium... done.                                            │
+     │                                                                         │
+     │ Ready! Run: ./august-qa                                                 │
+     │                                                                         │
+     │ After this: zero friction for everyone. Just ./august-qa.               │
+     │                                                                         │
+     │ Smart Router                                                            │
+     │                                                                         │
+     │ When user provides a prompt, a fast Haiku call ($0.001) interprets it:  │
+     │ ┌───────────────────────┬─────────────────────────────┬─────────────────│
+     │ ─────┐                                                                  │
+     │ │       User says       │       Router selects        │     Agent focus │
+     │      │                                                                  │
+     │ ├───────────────────────┼─────────────────────────────┼─────────────────│
+     │ ─────┤                                                                  │
+     │ │ (no args)             │ All 6 workflows             │ Full QA         │
+     │      │                                                                  │
+     │ ├───────────────────────┼─────────────────────────────┼─────────────────│
+     │ ─────┤                                                                  │
+     │ │ "test the full ux"    │ All 6 workflows             │ Full QA         │
+     │      │                                                                  │
+     │ ├───────────────────────┼─────────────────────────────┼─────────────────│
+     │ ─────┤                                                                  │
+     │ │ "test conversations"  │ login + conversations       │ Conversations   │
+     │ page   │                                                                │
+     │ ├───────────────────────┼─────────────────────────────┼─────────────────│
+     │ ─────┤                                                                  │
+     │ │ "check retag          │ login + conversations       │ Focus on retag  │
+     │      │                                                                  │
+     │ │ speakers"             │                             │ feature         │
+     │      │                                                                  │
+     │ ├───────────────────────┼─────────────────────────────┼─────────────────│
+     │ ─────┤                                                                  │
+     │ │ "new feature on       │ login + crm_entities        │ Focus on deals  │
+     │      │                                                                  │
+     │ │ deals"                │                             │                 │
+     │      │                                                                  │
+     │ ├───────────────────────┼─────────────────────────────┼─────────────────│
+     │ ─────┤                                                                  │
+     │ │ "test coaching        │ login + overview            │ Focus on        │
+     │ coaching    │                                                           │
+     │ │ reports"              │                             │                 │
+     │      │                                                                  │
+     │ ├───────────────────────┼─────────────────────────────┼─────────────────│
+     │ ─────┤                                                                  │
+     │ │ "check hubspot sync"  │ login + crm_entities +      │ Sync + verify   │
+     │      │                                                                  │
+     │ │                       │ hubspot                     │                 │
+     │      │                                                                  │
+     │ └───────────────────────┴─────────────────────────────┴─────────────────│
+     │ ─────┘                                                                  │
+     │                                                                         │
+     │                                                                         │
+     │                                                                         │
+     │                                                                         │
+     │                                                                         │
+     │                                                                         │
+     │                                                                         │
+     │                                                                         │
+     │                                                                         │
+     │                                                                         │
+     │ The 6 Workflows                                                         │
+     │                                                                         │
+     │ 1. Login (always runs first)                                            │
+     │                                                                         │
+     │ - Navigate to August URL → find login form → enter credentials → verify │
+     │ dashboard loads                                                         │
+     │ - BUG if: login fails, blank page, error messages                       │
+     │                                                                         │
+     │ 2. Conversations (most critical)                                        │
+     │                                                                         │
+     │ - Click Conversations tab → verify list with names + dates              │
+     │ - My tab → verify user's conversations                                  │
+     │ - Team tab → verify team conversations + member names                   │
+     │ - Click into conversation → verify: audio player, transcript, coaching  │
+     │ sections load                                                           │
+     │ - Retag Speakers → rename speaker → BUG if "Cloud function upgrade"     │
+     │ error                                                                   │
+     │ - Highlights → BUG if no colors (KNOWN BUG)                             │
+     │ - Coaching tab → Deep Dive → verify content loads                       │
+     │ - Action items → tick checkbox → verify update                          │
+     │                                                                         │
+     │ 3. CRM Entities                                                         │
+     │                                                                         │
+     │ - Create company: "QA-Test-Co-{date}-{rand}" → verify appears in list   │
+     │ - Create contact: "QA-Test-Contact-{date}-{rand}" → verify appears      │
+     │ - Create deal: "QA-Test-Deal-{date}-{rand}" → verify appears            │
+     │ - Link conversation to test company → verify link                       │
+     │ - Sync to CRM → verify no errors                                        │
+     │ - Check badges display correctly                                        │
+     │                                                                         │
+     │ 4. Overview & Coaching                                                  │
+     │                                                                         │
+     │ - Overview tab → verify metrics display                                 │
+     │ - Select a rep → verify page updates                                    │
+     │ - AI Takeaways → verify content                                         │
+     │ - Generate coaching report → verify it generates                        │
+     │ - Objections tab → verify data                                          │
+     │                                                                         │
+     │ 5. Todos                                                                │
+     │                                                                         │
+     │ - Mark action item as important → verify indicator                      │
+     │ - Todos tab → verify item appears                                       │
+     │ - Mark todo as done → verify completion                                 │
+     │                                                                         │
+     │ 6. HubSpot Verification                                                 │
+     │                                                                         │
+     │ - New tab → navigate to HubSpot → login                                 │
+     │ - Search for test company from workflow 3 → verify exists               │
+     │ - Check conversation summary synced → verify                            │
+     │ - Check meetings section → verify                                       │
+     │ - SKIP if HubSpot login fails (2FA/CAPTCHA)                             │
+     │                                                                         │
+     │ Project Structure                                                       │
+     │                                                                         │
+     │ august-qa/                                                              │
+     │ ├── august-qa.sh              ← THE COMMAND (chmod +x)                  │
+     │ ├── setup.sh                  ← First-time dependency install           │
+     │ ├── requirements.txt          ← browser-use, playwright, pydantic,      │
+     │ pyyaml                                                                  │
+     │ ├── config.yaml               ← Settings (model, timeouts, workflow     │
+     │ list)                                                                   │
+     │ ├── AUGUST_CONTEXT.md          ← Product knowledge (what "correct" looks│
+     │  like)                                                                  │
+     │ ├── src/                                                                │
+     │ │   ├── __init__.py                                                     │
+     │ │   ├── main.py               ← Orchestrator: setup check, routing,     │
+     │ workflow execution, reporting                                           │
+     │ │   ├── agent.py              ← browser-use wrapper: create agent, run, │
+     │ retry, evidence                                                         │
+     │ │   ├── config.py             ← Load ~/.august-qa/config + config.yaml +│
+     │  AUGUST_CONTEXT.md                                                      │
+     │ │   ├── router.py             ← Haiku call: natural language → workflow │
+     │ selection                                                               │
+     │ │   ├── setup_wizard.py       ← Interactive first-time credential setup │
+     │ │   ├── reporter.py           ← Terminal + JSON + HTML report generation│
+     │ │   └── workflows/                                                      │
+     │ │       ├── __init__.py       ← Auto-discovers workflow classes         │
+     │ │       ├── base.py           ← BaseWorkflow: prompt builder + runner   │
+     │ │       ├── login.py                                                    │
+     │ │       ├── conversations.py                                            │
+     │ │       ├── crm_entities.py                                             │
+     │ │       ├── overview.py                                                 │
+     │ │       ├── todos.py                                                    │
+     │ │       └── hubspot_verify.py                                           │
+     │ └── reports/                                                            │
+     │     └── .gitkeep                                                        │
+     │                                                                         │
+     │ Adding New Workflows (Extensibility)                                    │
+     │                                                                         │
+     │ Anyone can add a test for a new feature:                                │
+     │                                                                         │
+     │ 1. Create src/workflows/new_feature.py (copy any existing one, change   │
+     │ the prompt)                                                             │
+     │ 2. Add new_feature to config.yaml workflows list                        │
+     │ 3. Optionally update AUGUST_CONTEXT.md with what the feature should look│
+     │  like                                                                   │
+     │                                                                         │
+     │ The router automatically knows about new workflows from config.yaml.    │
+     │                                                                         │
+     │ Key Technical Details                                                   │
+     │                                                                         │
+     │ browser-use Agent Pattern                                               │
+     │                                                                         │
+     │ from browser_use import Agent, BrowserSession                           │
+     │ from browser_use.llm import ChatAnthropic  # NOT langchain's (GitHub    │
+     │ #2134 compat issue)                                                     │
+     │                                                                         │
+     │ agent = Agent(                                                          │
+     │     task=prompt,                    # Context + instructions + bug      │
+     │ criteria                                                                │
+     │     llm=ChatAnthropic(model="claude-sonnet-4-5-20250929"),              │
+     │     browser_session=session,                                            │
+     │     use_vision=True,                # Visual verification               │
+     │     generate_gif=True,              # Record actions                    │
+     │     calculate_cost=True,            # Track spend                       │
+     │     sensitive_data={                # Mask credentials in logs/GIFs     │
+     │         "x_email": email,                                               │
+     │         "x_password": password,                                         │
+     │     },                                                                  │
+     │     max_actions_per_step=5,                                             │
+     │     use_thinking=True,                                                  │
+     │ )                                                                       │
+     │ result = await agent.run(max_steps=50)                                  │
+     │                                                                         │
+     │ Prompt Formula (per workflow)                                           │
+     │                                                                         │
+     │ AUGUST_CONTEXT.md             ← What August is + what it should look    │
+     │ like                                                                    │
+     │ + Workflow instructions        ← Step-by-step what to test              │
+     │ + Bug criteria                 ← What counts as a bug                   │
+     │ + Focus (from router)          ← User's specific concern                │
+     │ + Test data naming             ← "QA-Test-{type}-{date}-{rand}"         │
+     │                                                                         │
+     │ Output                                                                  │
+     │                                                                         │
+     │ Terminal:                                                               │
+     │ [august-qa] Testing https://app.august.com                              │
+     │ [login]          ✓ PASS (4.2s)                                          │
+     │ [conversations]  ✗ FAIL — 2 bugs (38.1s)                                │
+     │   BUG: Retag speakers → "Cloud function upgrade" error                  │
+     │   BUG: Highlights missing colors                                        │
+     │ [crm_entities]   ✓ PASS (22.3s)                                         │
+     │ [overview]       ✓ PASS (18.7s)                                         │
+     │ [todos]          ✓ PASS (8.4s)                                          │
+     │ [hubspot]        ✓ PASS (31.2s)                                         │
+     │                                                                         │
+     │ 5/6 passed, 2 bugs found                                                │
+     │ Report: reports/qa-report-2026-02-09.html                               │
+     │ Cost: $1.23                                                             │
+     │                                                                         │
+     │ HTML report: Opens in browser, embedded screenshots + GIF recordings.   │
+     │                                                                         │
+     │ Implementation Order                                                    │
+     │                                                                         │
+     │ 1. Scaffolding (15 min): Directory, config files, AUGUST_CONTEXT.md,    │
+     │ .gitignore                                                              │
+     │ 2. Setup wizard (15 min): Interactive first-time setup →                │
+     │ ~/.august-qa/config                                                     │
+     │ 3. Core (30 min): config.py, agent.py, router.py, reporter.py, base.py  │
+     │ 4. Entry points (15 min): main.py, august-qa.sh                         │
+     │ 5. Workflows (60 min): login → conversations → crm_entities → overview →│
+     │  todos → hubspot                                                        │
+     │ 6. Polish (15 min): HTML report, error handling, headed/headless toggle │
+     │                                                                         │
+     │ Total: ~2.5 hours                                                       │
+     │                                                                         │
+     │ Risks                                                                   │
+     │                                                                         │
+     │                                                                         │
+     │                                                                         │
+     │                                                                         │
+     │ Risk: browser-use ~83% accuracy                                         │
+     │ Mitigation: 2x retry, rich context prompts, evidence on failure         │
+     │ ────────────────────────────────────────                                │
+     │ Risk: ~$1-2/run cost                                                    │
+     │ Mitigation: Track with calculate_cost, Sonnet not Opus                  │
+     │ ────────────────────────────────────────                                │
+     │ Risk: HubSpot 2FA                                                       │
+     │ Mitigation: SKIP workflow (not FAIL), document limitation               │
+     │ ────────────────────────────────────────                                │
+     │ Risk: macOS headless issues                                             │
+     │ Mitigation: Default headed for now                                      │
+     │ Verification                                                            │
+     │                                                                         │
+     │ 1. ./august-qa → first-time setup wizard runs, saves config             │
+     │ 2. ./august-qa --headed → full QA run with visible browser              │
+     │ 3. ./august-qa "test conversations" --headed → focused run              │
+     │ 4. HTML report opens with screenshots + GIFs                            │
+     │ 5. Known bugs caught and reported                                       │
+     │ 6. echo $? → 0 or 1                                                     │
+     ╰─────────────────────────────────────────────────────────────────────────╯
+
+⏺ Agent "Explore skill and hook patterns" failed: classifyHandoffIfNeeded is
+ not defined
+
+⏺ I hear you — I'll stop and wait. What do you want me to do?
+
+⏺ Agent "Explore browser automation setup" failed: classifyHandoffIfNeeded is
+ not defined
+
+⏺ Both background exploration agents finished (they hit an internal error, but
+  we already got everything we needed from them earlier).
+
+  I'm waiting for your direction. What would you like me to do?

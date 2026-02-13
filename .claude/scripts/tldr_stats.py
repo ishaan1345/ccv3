@@ -294,22 +294,35 @@ def main():
                 # Use first model found as model_id
                 if model_id == 'unknown':
                     model_id = model
-            # Estimate cost from JSONL data
-            # Pricing: input $3/M (sonnet default), output $15/M, cache read $0.30/M
+            # Estimate cost from JSONL data using model-aware pricing
+            # Pricing per million tokens:
+            #   Haiku:  $1 input, $5 output, cache_read = 10% of input
+            #   Sonnet: $3 input, $15 output, cache_read = 10% of input
+            #   Opus:   $15 input, $75 output, cache_read = 10% of input
             cache_tokens = sum(u.get('cache_read', 0) for u in model_breakdown.values())
             non_cache_input = input_tokens - cache_tokens
-            actual_cost = (non_cache_input / 1_000_000) * 3.0 + \
-                          (cache_tokens / 1_000_000) * 0.30 + \
-                          (output_tokens / 1_000_000) * 15.0
 
-    # Price for savings estimate ($/M tokens as of Jan 2026)
+            # Detect model for pricing
+            model_key = 'opus' if 'opus' in model_id.lower() else 'sonnet' if 'sonnet' in model_id.lower() else 'haiku'
+            prices = {
+                'haiku':  {'input': 1.0,  'output': 5.0,  'cache_read': 0.10},
+                'sonnet': {'input': 3.0,  'output': 15.0, 'cache_read': 0.30},
+                'opus':   {'input': 15.0, 'output': 75.0, 'cache_read': 1.50},
+            }
+            p = prices.get(model_key, prices['sonnet'])
+
+            actual_cost = (non_cache_input / 1_000_000) * p['input'] + \
+                          (cache_tokens / 1_000_000) * p['cache_read'] + \
+                          (output_tokens / 1_000_000) * p['output']
+
+    # Price for savings estimate ($/M tokens as of Feb 2026)
     # Claude 4.5 pricing from anthropic.com/pricing:
     #   Haiku:  $1 input,  $5 output
     #   Sonnet: $3 input, $15 output
-    #   Opus:   $5 input, $25 output
+    #   Opus:   $15 input, $75 output  (note: 5x Sonnet, not 1.67x!)
     # TLDR savings = reduced input tokens, so we use input prices
     model_key = 'opus' if 'opus' in model_id.lower() else 'sonnet' if 'sonnet' in model_id.lower() else 'haiku'
-    input_prices = {'opus': 5.0, 'sonnet': 3.0, 'haiku': 1.0}
+    input_prices = {'opus': 15.0, 'sonnet': 3.0, 'haiku': 1.0}
     price = input_prices.get(model_key, 3.0)
 
     # ========================================================================

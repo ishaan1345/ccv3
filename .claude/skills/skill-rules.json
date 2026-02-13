@@ -2,6 +2,39 @@
     "version": "1.0",
     "description": "Skill activation triggers for Claude Code. Controls when skills automatically suggest or block actions.",
     "skills": {
+        "swarm": {
+            "type": "workflow",
+            "enforcement": "suggest",
+            "priority": "critical",
+            "description": "Agent swarm orchestrator - deep understanding, massive parallelism, zero context pollution, deployed product",
+            "promptTriggers": {
+                "keywords": [
+                    "/swarm",
+                    "swarm",
+                    "agent swarm",
+                    "ship the product",
+                    "build everything",
+                    "implement everything",
+                    "deploy the whole thing",
+                    "full build",
+                    "end to end",
+                    "e2e implementation",
+                    "massive parallelism",
+                    "spawn agents",
+                    "50 agents",
+                    "parallel build",
+                    "ship it"
+                ],
+                "intentPatterns": [
+                    "(agent|launch|spawn).*?swarm",
+                    "(ship|build|implement|deploy).*?(everything|product|whole|entire)",
+                    "(full|complete|end.to.end).*?(build|implementation|deployment)",
+                    "(massive|maximum).*?parallel",
+                    "(50|many|lots of).*?agents",
+                    "swarm.*?(build|ship|deploy|implement)"
+                ]
+            }
+        },
         "compound-learnings": {
             "type": "domain",
             "enforcement": "suggest",
